@@ -11,6 +11,7 @@
 --  carara - 03/2013 - project split in several files. Each entity is described in a file with the same name.
 --  carara - 5/01/2017 - library std_logic_unsigned replaced by numeric_std
 --
+-- 
 --  Notes: 1) In this version, the register bank is designed using 
 --    for-generate VHDL construction
 --         2) The top-level R8 entity is
@@ -48,6 +49,50 @@ entity R8 is
         rw      : out std_logic 
     );
 end R8;
+
+architecture behavioral of R8 is
+    type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Spop, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spush);
+    type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
+    
+    -- State registers
+    signal currentState, nextState : State;
+    
+    -- Register file
+    signal registerFile: RegisterArray(0 to 15);
+    
+    -- Basic registers
+    signal regPC   : std_logic_vector(15 downto 0);
+    signal regSP   : std_logic_vector(15 downto 0);
+    signal regULA   : std_logic_vector(15 downto 0);
+    signal regIR   : std_logic_vector(15 downto 0);
+    signal regA   : std_logic_vector(15 downto 0);
+    signal regB   : std_logic_vector(15 downto 0);
+    
+    -- ULA flags register
+    signal flag: std_logic_vector(3 downto 0);
+
+begin
+    
+    -- Instruction decodification
+    decodedInstruction <=   ADD     when ir(15 downto 12) = x"0" else                               -- Log/arit 3 reg
+                            SUB     when ir(15 downto 12) = x"1" else                               -- Log/arit 3 reg
+                            AAND    when ir(15 downto 12) = x"2" else                               -- Log/arit 3 reg
+                            OOR     when ir(15 downto 12) = x"3" else                               -- Log/arit 3 reg
+                            XXOR    when ir(15 downto 12) = x"4" else                               -- Log/arit 3 reg
+                            HALT    when ir(15 downto 12) = x"B" and ir(3 downto 0) = x"6" else
+                            NOP;
+    
+    -- Sequential logic
+    process(rst, clk)
+    begin
+    
+    
+    
+    end process;
+    
+    
+
+end
 
 architecture structural of R8 is   
 
