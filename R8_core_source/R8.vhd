@@ -54,22 +54,35 @@ architecture behavioral of R8 is
     type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Spop, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spush);
     type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
     
+    -- 
+     signal decodedInstruction : instruction;
+    
     -- State registers
-    signal currentState, nextState : State;
+    signal currentState : State;
     
     -- Register file
     signal registerFile: RegisterArray(0 to 15);
     
     -- Basic registers
-    signal regPC   : std_logic_vector(15 downto 0);
-    signal regSP   : std_logic_vector(15 downto 0);
-    signal regULA   : std_logic_vector(15 downto 0);
-    signal regIR   : std_logic_vector(15 downto 0);
+    signal regPC  : std_logic_vector(15 downto 0);
+    signal regSP  : std_logic_vector(15 downto 0);
+    signal regULA : std_logic_vector(15 downto 0);
+    signal regIR  : std_logic_vector(15 downto 0);
     signal regA   : std_logic_vector(15 downto 0);
     signal regB   : std_logic_vector(15 downto 0);
     
+    -- Register file indices 
+    signal RS1   :   integer; --std_logic_vector(3 downto 0); -- is regIR(7 downto 4);
+    signal RS2   :   integer; --std_logic_vector(3 downto 0); -- is regIR(3 downto 0);
+    signal RST   :   integer; --std_logic_vector(3 downto 0); -- is regIR(11 downto 8);
+    
     -- ULA flags register
     signal flag: std_logic_vector(3 downto 0);
+    
+    -- Instructions formats
+    --      1: The target register is not source
+    --      2: The target register is ALSO source
+    signal instructionFormat1, instructionFormat2: boolean;
 
 begin
     
@@ -81,18 +94,72 @@ begin
                             XXOR    when ir(15 downto 12) = x"4" else                               -- Log/arit 3 reg
                             HALT    when ir(15 downto 12) = x"B" and ir(3 downto 0) = x"6" else
                             NOP;
+    -- The target register is not source
+    instructionFormat1 <= true when decodedInstruction=ADD or decodedInstruction=SUB or decodedInstruction=AAND or decodedInstruction=OOR or decodedInstruction=XXOR or decodedInstruction=NOT_A or decodedInstruction=SL0 or decodedInstruction=SR0 or decodedInstruction=SL1 or decodedInstruction=SR1 else false;
+    -- The target register is ALSO source
+    instructionFormat2 <= true when decodedInstruction=ADDI or decodedInstruction=SUBI or decodedInstruction=LDL or decodedInstruction=LDH else false; 
     
     -- Sequential logic
     process(rst, clk)
     begin
-    
-    
+        if rst = '1' then
+            currentState <= Sidle;
+            -- ZERAR REGISTRADORES
+            
+            
+            
+            
+        elsif rising_edge(clk) then    
+            case currentState is
+                when Sidle =>
+                    currentState <= Sfetch;
+           
+                when Sfetch =>
+                    regPC <= std_logic_vector(unsigned(regPC)+1);       -- PC++
+                    regIR <= data_in;                                   -- IR <= MEM[ADDRESS]
+                    currentState <= Sreg;
+                    
+                when Sreg =>
+                    regA <= registerFile(RS1);
+                    regB <= registerFile(RS2);
+                    
+                    if decodedInstruction = HALT then      -- HALT fount => stop generating microinstructions
+                        nextState <= Shalt;
+                    else
+                       nextState <= Salu;
+                    end if;
+                    
+                when Salu =>
+                    
+                
+                
+                when Swbk =>
+                
+                
+                
+                when Shalt =>
+                
+                
+                
+            end case;
+        end if;
     
     end process;
-    
+        
     
 
-end
+    -- Register file access address
+    RS1 <= to_integer(unsigned(regIR(7 downto 4)));
+    RS2 <= to_integer(unsigned(regIR(11 downto 8))) when instructionFormat2 or decodedInstruction = PUSH or currentState = Sst else
+           to_integer(unsigned(regIR(3 downto 0)));
+    RST <= to_integer(unsigned(regIR(11 downto 8)));
+    
+    -- Memory access interface
+    ce <= '1' when rst = '0' and (currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst) else '0';
+    rw <= '1' when currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld else '0';
+
+    
+end behavioral;
 
 architecture structural of R8 is   
 
