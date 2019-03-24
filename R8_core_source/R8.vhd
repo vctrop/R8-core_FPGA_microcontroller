@@ -76,9 +76,23 @@ architecture behavioral of R8 is
     signal RS2   :   integer; --std_logic_vector(3 downto 0); -- is regIR(3 downto 0);
     signal RST   :   integer; --std_logic_vector(3 downto 0); -- is regIR(11 downto 8);
     
-    -- ULA flags register
-    signal flag: std_logic_vector(3 downto 0);
+    -- Status flag signals
+    signal N        : std_logic;
+    signal Z        : std_logic;
+    signal C        : std_logic;
+    signal V        : std_logic;
     
+    -- Status flags register
+    signal flag         : std_logic_vector(3 downto 0);
+    alias negativeFlag  : std_logic is flag(0);
+    alias zeroFlag      : std_logic is flag(1);
+    alias carryFlag     : std_logic is flag(2);
+    alias overflowFlag  : std_logic is flag(3);
+    --JULIO: eu acho que parece q ficam varios sinais, mas acredito ser o jeito mais simples de fazer isso.
+    
+    --ALU temporary signal for flag evaluation with an extra bit
+    signal ALUout, opA, opB   :   std_logic_vector(16 downto 0);
+
     -- Instructions formats
     --      1: The target register is not source
     --      2: The target register is ALSO source
@@ -104,7 +118,7 @@ begin
     begin
         if rst = '1' then
             currentState <= Sidle;
-            -- ZERAR REGISTRADORES
+            --TODO: ZERAR REGISTRADORES
             
             
             
@@ -124,30 +138,62 @@ begin
                     regB <= registerFile(RS2);
                     
                     if decodedInstruction = HALT then      -- HALT fount => stop generating microinstructions
-                        nextState <= Shalt;
+                        currentState <= Shalt;
                     else
-                       nextState <= Salu;
+                       currentState <= Salu;
                     end if;
                     
                 when Salu =>
                     
+                    --flag register writing for certain instructions
+                    if (instructionFormat1 or decodedInstruction = ADDI or decodedInstruction = SUBI) then
+                        zeroFlag <= Z;
+                        negativeFlag <= N;
+                    end if;
+                    if (decodedInstruction = ADD or decodedInstruction = ADDI or decodedInstruction = SUB or decodedInstruction = SUBI) then
+                        overflowFlag <= V;
+                        carryFlag <= C;
+                    end if;
+                    
+                    regULA <= ALUout(15 downto 0);
                 
+                    --TODO: NEXT STATE LOGIC
                 
                 when Swbk =>
                 
                 
                 
                 when Shalt =>
-                
+                    currentState <= Shalt;              --HALT loops forever
                 
                 
             end case;
         end if;
     
     end process;
-        
     
-
+    --ULA operator selection
+    opA(16) <= '0';             --extra bit for considering carry and overload
+    opB(16) <= '0';
+ 
+    opA(15 downto 0) <= (x"0000" & regIR(7 downto 0)) when instructionFormat2 or decodedInstruction = JUMP_D or decodedInstruction = JSRD else
+                        regA;
+                        
+    opB(15 downto 0) <= regSP when decodedInstruction = RTS or decodedInstruction = POP else
+                        regPC when decodedInstruction=JUMP_R or decodedInstruction=JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  else
+                        regB;
+    
+    --TODO: IMPLEMENTAR O RESTO DAS INSTRUÇÕES DA ULA QUANDO ADICIONARMOR SUPORTE A MAIS INSTRUÇÕES
+    ALUout <=   opA and opB when decodedInstruction = AAND else  
+                opA or  opB when decodedInstruction = OOR  else   
+                opA xor opB when decodedInstruction = XXOR else
+                opA -   opB when decodedInstruction = SUB  else
+                opA +   opB;
+                
+    N <= '1' when (ALUout(15) = '1') else '0';
+    Z <= '1' when (ALUout(15 downto 0) = '0') else '0';
+    C <= '1' when (ALUout(16) = '1') else '0';
+    V <= '0' --TODO: CONDITION FOR OVERFLOW !!
     -- Register file access address
     RS1 <= to_integer(unsigned(regIR(7 downto 4)));
     RS2 <= to_integer(unsigned(regIR(11 downto 8))) when instructionFormat2 or decodedInstruction = PUSH or currentState = Sst else
