@@ -119,9 +119,14 @@ begin
         if rst = '1' then
             currentState <= Sidle;
             --TODO: ZERAR REGISTRADORES
-            
-            
-            
+            RegisterArray   <= (others => (others=>'0'));
+            regPC           <= (others => '0');
+            regSP           <= (others => '0');
+            regULA          <= (others => '0');
+            regIR           <= (others => '0');
+            regA            <= (others => '0');
+            regB            <= (others => '0');
+            flag            <= (others => '0');
             
         elsif rising_edge(clk) then    
             case currentState is
@@ -157,10 +162,40 @@ begin
                     
                     regULA <= ALUout(15 downto 0);
                 
-                    --TODO: NEXT STATE LOGIC
+                    --next state logic
+                    if decodedInstruction = PUSH then   
+                    nextState <= Spush;
                 
+                    elsif decodedInstruction = POP then   
+                        nextState <= Spop;
+                    
+                    elsif decodedInstruction = RTS then   
+                        nextState <= Srts;
+                
+                    elsif decodedInstruction = LDSP then   
+                        nextState <= Sldsp;
+                    
+                    elsif decodedInstruction = LD then   
+                        nextState <= Sld;
+                          
+                    elsif decodedInstruction = ST then   
+                        nextState <= Sst;
+                          
+                    elsif instructionFormat1 or instructionFormat2 then   
+                        nextState <= Swbk;
+                    
+                    elsif decodedInstruction = JUMP_R or decodedInstruction = JUMP_A or decodedInstruction = JUMP_D then   
+                        nextState <= Sjmp;
+                          
+                    elsif decodedInstruction = JSRR or decodedInstruction = JSR or decodedInstruction = JSRD then   
+                        nextState <= Ssbrt; 
+                
+                    else    -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
+                        nextState <= Sfetch;   
+                    end if;
+                    
                 when Swbk =>
-                
+                    
                 
                 
                 when Shalt =>
@@ -176,7 +211,7 @@ begin
     opA(16) <= '0';             --extra bit for considering carry and overload
     opB(16) <= '0';
  
-    opA(15 downto 0) <= (x"0000" & regIR(7 downto 0)) when instructionFormat2 or decodedInstruction = JUMP_D or decodedInstruction = JSRD else
+    opA(15 downto 0) <= (x"00" & regIR(7 downto 0)) when instructionFormat2 or decodedInstruction = JUMP_D or decodedInstruction = JSRD else
                         regA;
                         
     opB(15 downto 0) <= regSP when decodedInstruction = RTS or decodedInstruction = POP else
@@ -184,16 +219,16 @@ begin
                         regB;
     
     --TODO: IMPLEMENTAR O RESTO DAS INSTRUÇÕES DA ULA QUANDO ADICIONARMOR SUPORTE A MAIS INSTRUÇÕES
-    ALUout <=   opA and opB when decodedInstruction = AAND else  
-                opA or  opB when decodedInstruction = OOR  else   
-                opA xor opB when decodedInstruction = XXOR else
-                opA -   opB when decodedInstruction = SUB  else
-                opA +   opB;
+    ALUout <=   opA and opB                                     when decodedInstruction = AAND else  
+                opA or  opB                                     when decodedInstruction = OOR  else   
+                opA xor opB                                     when decodedInstruction = XXOR else
+                std_logic_vector(signed(opA) -   signed(opB))   when decodedInstruction = SUB  else
+                std_logic_vector(signed(opA) +   signed(opB));
                 
     N <= '1' when (ALUout(15) = '1') else '0';
-    Z <= '1' when (ALUout(15 downto 0) = '0') else '0';
-    C <= '1' when (ALUout(16) = '1') else '0';
-    V <= '0' --TODO: CONDITION FOR OVERFLOW !!
+    Z <= '1' when (unsigned(ALUout(15 downto 0)) = 0) else '0';
+    C <= '1' when (ALUout(16) = '1') else '0';  --might not be correct
+    V <= '0'; --TODO: CONDITION FOR OVERFLOW !!
     -- Register file access address
     RS1 <= to_integer(unsigned(regIR(7 downto 4)));
     RS2 <= to_integer(unsigned(regIR(11 downto 8))) when instructionFormat2 or decodedInstruction = PUSH or currentState = Sst else
