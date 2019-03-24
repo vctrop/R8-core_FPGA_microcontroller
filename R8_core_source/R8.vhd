@@ -119,7 +119,7 @@ begin
         if rst = '1' then
             currentState <= Sidle;
             --TODO: ZERAR REGISTRADORES
-            RegisterArray   <= (others => (others=>'0'));
+            registerFile   <= (others => (others=>'0'));
             regPC           <= (others => '0');
             regSP           <= (others => '0');
             regULA          <= (others => '0');
@@ -164,40 +164,40 @@ begin
                 
                     --next state logic
                     if decodedInstruction = PUSH then   
-                    nextState <= Spush;
+                    currentState <= Spush;
                 
                     elsif decodedInstruction = POP then   
-                        nextState <= Spop;
+                        currentState <= Spop;
                     
                     elsif decodedInstruction = RTS then   
-                        nextState <= Srts;
+                        currentState <= Srts;
                 
                     elsif decodedInstruction = LDSP then   
-                        nextState <= Sldsp;
+                        currentState <= Sldsp;
                     
                     elsif decodedInstruction = LD then   
-                        nextState <= Sld;
+                        currentState <= Sld;
                           
                     elsif decodedInstruction = ST then   
-                        nextState <= Sst;
+                        currentState <= Sst;
                           
                     elsif instructionFormat1 or instructionFormat2 then   
-                        nextState <= Swbk;
+                        currentState <= Swbk;
                     
                     elsif decodedInstruction = JUMP_R or decodedInstruction = JUMP_A or decodedInstruction = JUMP_D then   
-                        nextState <= Sjmp;
+                        currentState <= Sjmp;
                           
                     elsif decodedInstruction = JSRR or decodedInstruction = JSR or decodedInstruction = JSRD then   
-                        nextState <= Ssbrt; 
+                        currentState <= Ssbrt; 
                 
                     else    -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
-                        nextState <= Sfetch;   
+                        currentState <= Sfetch;   
                     end if;
                     
                 when Swbk =>
-                    
-                
-                
+                    registerFile(RST) <= regULA;
+                    currentState <= Sfetch;
+ 
                 when Shalt =>
                     currentState <= Shalt;              --HALT loops forever
                 
