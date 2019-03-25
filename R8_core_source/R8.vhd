@@ -50,6 +50,8 @@ entity R8 is
     );
 end R8;
 
+-- TODO: ELIMINAR LATCHES CRIADOS EM IFs E WHEN/ELSEs
+
 architecture behavioral of R8 is
     type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Spop, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spush);
     type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
@@ -83,15 +85,18 @@ architecture behavioral of R8 is
     signal V        : std_logic;
     
     -- Status flags register
-    signal flag         : std_logic_vector(3 downto 0);
-    alias negativeFlag  : std_logic is flag(0);
-    alias zeroFlag      : std_logic is flag(1);
-    alias carryFlag     : std_logic is flag(2);
-    alias overflowFlag  : std_logic is flag(3);
+    signal regFlags     : std_logic_vector(3 downto 0);
+    alias negativeFlag  : std_logic is regFlags(0);
+    alias zeroFlag      : std_logic is regFlags(1);
+    alias carryFlag     : std_logic is regFlags(2);
+    alias overflowFlag  : std_logic is regFlags(3);
     --JULIO: eu acho que parece q ficam varios sinais, mas acredito ser o jeito mais simples de fazer isso.
     
     --ALU temporary signal for flag evaluation with an extra bit
-    signal ALUout, opA, opB   :   std_logic_vector(16 downto 0);
+    signal ALUout, opA, opB     :   std_logic_vector(16 downto 0);
+    alias msbA                  :   std_logic is opA(15);
+    alias msbB                  :   std_logic is opB(15);
+    alias msbOut                :   std_logic is ALUout(15);     
 
     -- Instructions formats
     --      1: The target register is not source
@@ -119,14 +124,14 @@ begin
         if rst = '1' then
             currentState <= Sidle;
             --TODO: ZERAR REGISTRADORES
-            registerFile   <= (others => (others=>'0'));
+            registerFile    <= (others => (others=>'0'));
             regPC           <= (others => '0');
             regSP           <= (others => '0');
             regULA          <= (others => '0');
             regIR           <= (others => '0');
             regA            <= (others => '0');
             regB            <= (others => '0');
-            flag            <= (others => '0');
+            regFlags        <= (others => '0');
             
         elsif rising_edge(clk) then    
             case currentState is
@@ -218,7 +223,7 @@ begin
                         regPC when decodedInstruction=JUMP_R or decodedInstruction=JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  else
                         regB;
     
-    --TODO: IMPLEMENTAR O RESTO DAS INSTRUÇÕES DA ULA QUANDO ADICIONARMOR SUPORTE A MAIS INSTRUÇÕES
+    --TODO: IMPLEMENTAR O RESTO DAS INSTRUÇÕES DA ULA QUANDO ADICIONARMOR SUPORTE A MAIS INSTRUÇÕES    
     ALUout <=   opA and opB                                     when decodedInstruction = AAND else  
                 opA or  opB                                     when decodedInstruction = OOR  else   
                 opA xor opB                                     when decodedInstruction = XXOR else
@@ -227,8 +232,11 @@ begin
                 
     N <= '1' when (ALUout(15) = '1') else '0';
     Z <= '1' when (unsigned(ALUout(15 downto 0)) = 0) else '0';
-    C <= '1' when (ALUout(16) = '1') else '0';  --might not be correct
-    V <= '0'; --TODO: CONDITION FOR OVERFLOW !!
+    C <= '1' when (ALUout(16) = '1') else '0';
+    -- TODO: IMPLEMENTAR MESMA LÓGICA DE OVERFLOW PARA INSTRUÇÕES IMEDIATAS (ADDI, SUBI)
+    V <= ((not msbA) and  (not msbB) and msbOut) or (msbA and      msbB  and (not msbOut)) when decodedInstruction = ADD      else              -- overflow under addition
+         ((not msbA) and       msbB  and msbOut) or (msbA and (not msbB) and (not msbOut)) when decodedInstruction = SUB;                       -- overflow under subtraction
+    
     -- Register file access address
     RS1 <= to_integer(unsigned(regIR(7 downto 4)));
     RS2 <= to_integer(unsigned(regIR(11 downto 8))) when instructionFormat2 or decodedInstruction = PUSH or currentState = Sst else
