@@ -34,6 +34,7 @@
 -------------------------------------------------------------------------
 library IEEE;
 use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
 use work.R8_pkg.all;
 
 entity R8 is
@@ -76,7 +77,7 @@ architecture behavioral of R8 is
     -- Register file indices 
     signal RS1   :   integer; --std_logic_vector(3 downto 0); -- is regIR(7 downto 4);
     signal RS2   :   integer; --std_logic_vector(3 downto 0); -- is regIR(3 downto 0);
-    signal RST   :   integer; --std_logic_vector(3 downto 0); -- is regIR(11 downto 8);
+    signal RGT   :   integer; --std_logic_vector(3 downto 0); -- is regIR(11 downto 8);
     
     -- Status flag signals
     signal N        : std_logic;
@@ -106,12 +107,12 @@ architecture behavioral of R8 is
 begin
     
     -- Instruction decodification
-    decodedInstruction <=   ADD     when ir(15 downto 12) = x"0" else                               -- Log/arit 3 reg
-                            SUB     when ir(15 downto 12) = x"1" else                               -- Log/arit 3 reg
-                            AAND    when ir(15 downto 12) = x"2" else                               -- Log/arit 3 reg
-                            OOR     when ir(15 downto 12) = x"3" else                               -- Log/arit 3 reg
-                            XXOR    when ir(15 downto 12) = x"4" else                               -- Log/arit 3 reg
-                            HALT    when ir(15 downto 12) = x"B" and ir(3 downto 0) = x"6" else
+    decodedInstruction <=   ADD     when regIR(15 downto 12) = x"0" else                               -- Log/arit 3 reg
+                            SUB     when regIR(15 downto 12) = x"1" else                               -- Log/arit 3 reg
+                            AAND    when regIR(15 downto 12) = x"2" else                               -- Log/arit 3 reg
+                            OOR     when regIR(15 downto 12) = x"3" else                               -- Log/arit 3 reg
+                            XXOR    when regIR(15 downto 12) = x"4" else                               -- Log/arit 3 reg
+                            HALT    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"6" else
                             NOP;
     -- The target register is not source
     instructionFormat1 <= true when decodedInstruction=ADD or decodedInstruction=SUB or decodedInstruction=AAND or decodedInstruction=OOR or decodedInstruction=XXOR or decodedInstruction=NOT_A or decodedInstruction=SL0 or decodedInstruction=SR0 or decodedInstruction=SL1 or decodedInstruction=SR1 else false;
@@ -200,10 +201,12 @@ begin
                     end if;
                     
                 when Swbk =>
-                    registerFile(RST) <= regULA;
+                    registerFile(RGT) <= regULA;
                     currentState <= Sfetch;
- 
-                when Shalt =>
+ 		--TODO: *ATENTION!!!!!!* THIS MUST BE CHANGED TO:
+		--when Shalt =>
+		--WHEN EVERY SINGLE INSTRUCTION IS IMPLEMENTED!!!
+                when others  =>
                     currentState <= Shalt;              --HALT loops forever
                 
                 
@@ -241,7 +244,7 @@ begin
     RS1 <= to_integer(unsigned(regIR(7 downto 4)));
     RS2 <= to_integer(unsigned(regIR(11 downto 8))) when instructionFormat2 or decodedInstruction = PUSH or currentState = Sst else
            to_integer(unsigned(regIR(3 downto 0)));
-    RST <= to_integer(unsigned(regIR(11 downto 8)));
+    RGT <= to_integer(unsigned(regIR(11 downto 8)));
     
     -- Memory access interface
     ce <= '1' when rst = '0' and (currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst) else '0';
