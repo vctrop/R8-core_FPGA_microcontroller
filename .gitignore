@@ -1,3 +1,9 @@
 work/
 *.wlf
 *.vstf
+
+*.ini
+
+*.mpf
+
+*.mti
