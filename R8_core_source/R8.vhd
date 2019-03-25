@@ -124,8 +124,9 @@ begin
     begin
         if rst = '1' then
             currentState <= Sidle;
-            --TODO: ZERAR REGISTRADORES
-            registerFile    <= (others => (others=>'0'));
+            --TODO: retomar a zerar a register file dps de implementarmos load e store
+            --registerFile    <= (others => (others=>'0'));	
+			registerFile 	<= (0 => x"0000", 1 => x"0001", 2 => x"ffff", 3 => x"8000", 4 => x"AAAA", others => (others => '0'));
             regPC           <= (others => '0');
             regSP           <= (others => '0');
             regULA          <= (others => '0');
