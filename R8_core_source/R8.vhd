@@ -250,7 +250,10 @@ begin
     -- Memory access interface
     ce <= '1' when rst = '0' and (currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst) else '0';
     rw <= '1' when currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld else '0';
-
+	
+	address <= 	regSP when currentState = Spush or  currentState = Ssbrt else
+				regPC when currentState = Sfetch else
+				regULA;
     
 end behavioral;
 

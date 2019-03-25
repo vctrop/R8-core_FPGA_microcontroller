@@ -34,7 +34,7 @@ begin
     RAM : entity work.Memory   
         generic map (
            SIZE         => 1024,    -- 1024 words (2KB)
-           imageFileName => "Todas_Instrucoes_R8.txt"
+           imageFileName => "test_3reg_arit.txt"
         )
         port map (
             clk     => clk,
