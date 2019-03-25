@@ -93,11 +93,12 @@ architecture behavioral of R8 is
     alias overflowFlag  : std_logic is regFlags(3);
     --JULIO: eu acho que parece q ficam varios sinais, mas acredito ser o jeito mais simples de fazer isso.
     
-    --ALU temporary signal for flag evaluation with an extra bit
+    --ALU signal for flag evaluation with an extra bit
     signal ALUout, opA, opB     :   std_logic_vector(16 downto 0);
     alias msbA                  :   std_logic is opA(15);
     alias msbB                  :   std_logic is opB(15);
-    alias msbOut                :   std_logic is ALUout(15);     
+    alias msbOut                :   std_logic is ALUout(15); 
+       
 
     -- Instructions formats
     --      1: The target register is not source
