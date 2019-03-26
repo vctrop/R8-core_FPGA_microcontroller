@@ -229,10 +229,17 @@ begin
                         regB;
     
     --TODO: IMPLEMENTAR O RESTO DAS INSTRUÇÕES DA ULA QUANDO ADICIONARMOR SUPORTE A MAIS INSTRUÇÕES    
-    ALUout <=   opA and opB                                     when decodedInstruction = AAND else  
-                opA or  opB                                     when decodedInstruction = OOR  else   
-                opA xor opB                                     when decodedInstruction = XXOR else
-                std_logic_vector(signed(opA) -   signed(opB))   when decodedInstruction = SUB  else
+    ALUout <=   opA and opB                                     when decodedInstruction = AAND  else  
+                opA or  opB                                     when decodedInstruction = OOR   else   
+                opA xor opB                                     when decodedInstruction = XXOR  else
+                opB(15 downto 8) & opA(7 downto 0)  	        when operation = LDL            else  -- A: immediate operand (wrapped in the instruction)
+                opA(7 downto 0)  & opB(7 downto 0)  	        when operation = LDH            else  -- A: immediate operand (wrapped in the instruction)
+                A(14 downto 0) & '0'            	            when operation = SL0            else
+                A(14 downto 0) & '1'            	            when operation = SL1            else
+                '0' & A(15 downto 1)            	            when operation = SR0            else
+                '1' & A(15 downto 1)            	            when operation = SR1            else
+                not A                           	            when operation = NOT_A          else 
+                std_logic_vector(signed(opA) -   signed(opB))   when decodedInstruction = SUB or decodedInstruction = SUBI else
                 std_logic_vector(signed(opA) +   signed(opB));
                 
     N <= '1' when (ALUout(15) = '1') else '0';
