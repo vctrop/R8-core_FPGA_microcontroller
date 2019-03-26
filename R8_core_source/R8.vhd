@@ -96,6 +96,7 @@ architecture behavioral of R8 is
     alias msbB                  :   std_logic is opB(15);
     alias msbOut                :   std_logic is ALUout(15); 
        
+    signal notB                 :   std_logic_vector(16 downto 0);
 
     -- Instructions formats
     --      1: The target register is not source
@@ -269,6 +270,7 @@ begin
     opB(15 downto 0) <= regSP when decodedInstruction = RTS or decodedInstruction = POP else
                         regPC when decodedInstruction=JUMP_R or decodedInstruction=JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  else
                         regB;
+    notB <= '0' & std_logic_vector(signed(not opB(15 downto 0)) + 1);
     
     --TODO: IMPLEMENTAR O RESTO DAS INSTRUÇÕES DA ULA QUANDO ADICIONARMOR SUPORTE A MAIS INSTRUÇÕES    
     ALUout <=   opA and opB                                     when decodedInstruction = AAND  else  
@@ -281,7 +283,7 @@ begin
                 "00" & opA(15 downto 1)            	            when decodedInstruction = SR0            else
                 "01" & opA(15 downto 1)            	            when decodedInstruction = SR1            else
                 not opA                           	            when decodedInstruction = NOT_A          else 
-                std_logic_vector(signed(opA) -   signed(opB))   when decodedInstruction = SUB or decodedInstruction = SUBI else
+                std_logic_vector(signed(opA) +   signed(notB))   when decodedInstruction = SUB or decodedInstruction = SUBI else
                 std_logic_vector(signed(opA) +   signed(opB));
                 
     N <= '1' when (ALUout(15) = '1') else '0';
