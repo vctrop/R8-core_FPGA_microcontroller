@@ -115,8 +115,8 @@ begin
                             SUBI    when regIR(15 downto 12) = x"6" else
                             LDL     when regIR(15 downto 12) = x"7" else
                             LDH     when regIR(15 downto 12) = x"8" else
-                            --LD      when regIR(15 downto 12) = x"9" else
-                            --ST      when regIR(15 downto 12) = x"A" else
+                            LD      when regIR(15 downto 12) = x"9" else
+                            ST      when regIR(15 downto 12) = x"A" else
                             SL0     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"0" else
                             SL1     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"1" else
                             SR0     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"2" else
@@ -248,6 +248,13 @@ begin
                 when Swbk =>
                     registerFile(RGT) <= regULA;
                     currentState <= Sfetch;
+					
+				when Sld =>
+					registerFile(RGT) <= data_in;
+					currentState <= Sfetch;
+					
+				when Sst =>
+					currentState <= Sfetch;
  		--TODO: *ATENTION!!!!!!* THIS MUST BE CHANGED TO:
 		--when Shalt =>
 		--WHEN EVERY SINGLE INSTRUCTION IS IMPLEMENTED!!!
@@ -307,6 +314,9 @@ begin
 				regPC when currentState = Sfetch else
 				regULA;
     
+	--data out recieves data directly read from register file when operation is ST, otherwise opB **ATTENTION** ANY CHANGES TO opb MAY AFFECT THIS!!!!!
+	data_out <= registerFile(RS2) when regIR(15 downto 12) = x"A" else opB(15 downto 0);
+	
 end behavioral;
 
 architecture structural of R8 is   
