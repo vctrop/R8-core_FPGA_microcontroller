@@ -92,11 +92,13 @@ architecture behavioral of R8 is
     
     --ALU signal for flag evaluation with an extra bit
     signal ALUout, opA, opB     :   std_logic_vector(16 downto 0);
+    alias msbOut                :   std_logic is ALUout(15); 
     alias msbA                  :   std_logic is opA(15);
     alias msbB                  :   std_logic is opB(15);
-    alias msbOut                :   std_logic is ALUout(15); 
+    
        
-    signal notB                 :   std_logic_vector(16 downto 0);
+    signal negativeA                 :   std_logic_vector(16 downto 0);
+    signal negativeB                 :   std_logic_vector(16 downto 0);
 
     -- Instructions formats
     --      1: The target register is not source
@@ -277,28 +279,34 @@ begin
     opB(15 downto 0) <= regSP when decodedInstruction = RTS or decodedInstruction = POP else
                         regPC when decodedInstruction=JUMP_R or decodedInstruction=JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  else
                         regB;
-    notB <= '0' & std_logic_vector(signed(not opB(15 downto 0)) + 1);
+    
+    negativeA <= '0' & std_logic_vector(signed(not opA(15 downto 0)) + 1);
+    negativeB <= '0' & std_logic_vector(signed(not opB(15 downto 0)) + 1);
+    
     
     --TODO: IMPLEMENTAR O RESTO DAS INSTRUÇÕES DA ULA QUANDO ADICIONARMOR SUPORTE A MAIS INSTRUÇÕES    
-    ALUout <=   opA and opB                                     when decodedInstruction = AAND  else  
-                opA or  opB                                     when decodedInstruction = OOR   else   
-                opA xor opB                                     when decodedInstruction = XXOR  else
-                opB(16 downto 8) & opA(7 downto 0)  	        when decodedInstruction = LDL            else  -- A: immediate operand (wrapped in the instruction)
-                opA(8 downto 0)  & opB(7 downto 0)  	        when decodedInstruction = LDH            else  -- A: immediate operand (wrapped in the instruction)
-                opA(15 downto 0) & '0'            	            when decodedInstruction = SL0            else  -- We use an extra bit in shift instructions to check flags
-                opA(15 downto 0) & '1'            	            when decodedInstruction = SL1            else
-                "00" & opA(15 downto 1)            	            when decodedInstruction = SR0            else
-                "01" & opA(15 downto 1)            	            when decodedInstruction = SR1            else
-                not opA                           	            when decodedInstruction = NOT_A          else 
-                std_logic_vector(signed(opA) +   signed(notB))   when decodedInstruction = SUB or decodedInstruction = SUBI else
-                std_logic_vector(signed(opA) +   signed(opB));
+    ALUout <=   opA and opB                                                 when decodedInstruction = AAND  else  
+                opA or  opB                                                 when decodedInstruction = OOR   else   
+                opA xor opB                                                 when decodedInstruction = XXOR  else
+                opB(16 downto 8) & opA(7 downto 0)  	                    when decodedInstruction = LDL   else  -- A: immediate operand (wrapped in the instruction)
+                opA(8 downto 0)  & opB(7 downto 0)  	                    when decodedInstruction = LDH   else  -- A: immediate operand (wrapped in the instruction)
+                opA(15 downto 0) & '0'            	                        when decodedInstruction = SL0   else  -- We use an extra bit in shift instructions to check flags
+                opA(15 downto 0) & '1'            	                        when decodedInstruction = SL1   else
+                "00" & opA(15 downto 1)            	                        when decodedInstruction = SR0   else
+                "01" & opA(15 downto 1)            	                        when decodedInstruction = SR1   else
+                not opA                           	                        when decodedInstruction = NOT_A else 
+                std_logic_vector(signed(opA)        +   signed(negativeB))  when decodedInstruction = SUB   else 
+                std_logic_vector(signed(negativeA)  +   signed(opB))        when decodedInstruction = SUBI else
+                std_logic_vector(signed(opA)        +   signed(opB));
                 
     N <= '1' when (ALUout(15) = '1') else '0';
     Z <= '1' when (unsigned(ALUout(15 downto 0)) = 0) else '0';
     C <= '1' when (ALUout(16) = '1') else '0';
     -- TODO: IMPLEMENTAR MESMA LÓGICA DE OVERFLOW PARA INSTRUÇÕES IMEDIATAS (ADDI, SUBI)
-    V <= ((not msbA) and  (not msbB) and msbOut) or (msbA and      msbB  and (not msbOut)) when decodedInstruction = ADD      else              -- overflow under addition
-         ((not msbA) and       msbB  and msbOut) or (msbA and (not msbB) and (not msbOut)) when decodedInstruction = SUB;                       -- overflow under subtraction
+          
+    V <= ((not msbA) and  (not msbB) and msbOut) or (msbA and      msbB  and (not msbOut)) when decodedInstruction = ADD or decodedInstruction = ADDI       else        -- overflow under addition
+         ((not msbA) and       msbB  and msbOut) or (msbA and (not msbB) and (not msbOut)) when decodedInstruction = SUB                                    else        -- overflow under subtraction
+         ((not msbB) and       msbA  and msbOut) or (msbB and (not msbA) and (not msbOut)) when decodedInstruction = SUBI;
     
     -- Register file access address
     RS1 <= to_integer(unsigned(regIR(7 downto 4)));
