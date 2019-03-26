@@ -67,7 +67,7 @@ architecture behavioral of R8 is
     -- Basic registers
     signal regPC  : std_logic_vector(15 downto 0);
     signal regSP  : std_logic_vector(15 downto 0);
-    signal regULA : std_logic_vector(15 downto 0);
+    signal regALU : std_logic_vector(15 downto 0);
     signal regIR  : std_logic_vector(15 downto 0);
     signal regA   : std_logic_vector(15 downto 0);
     signal regB   : std_logic_vector(15 downto 0);
@@ -125,7 +125,7 @@ begin
                             SR1     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"3" else
                             NOT_A   when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"4" else                              -- Log/arit 3 reg
                             HALT    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"6" else
-                            -- LDSP    when ir(15 downto 12) = x"B" and ir(3 downto 0) = x"7" else
+                            LDSP    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"7" else
                             -- RTS     when ir(15 downto 12) = x"B" and ir(3 downto 0) = x"8" else
                             -- POP     when ir(15 downto 12) = x"B" and ir(3 downto 0) = x"9" else
                             -- PUSH    when ir(15 downto 12) = x"B" and ir(3 downto 0) = x"A" else 
@@ -175,7 +175,7 @@ begin
             registerFile    <= (others => (others=>'0'));	
             regPC           <= (others => '0');
             regSP           <= (others => '0');
-            regULA          <= (others => '0');
+            regALU          <= (others => '0');
             regIR           <= (others => '0');
             regA            <= (others => '0');
             regB            <= (others => '0');
@@ -213,7 +213,7 @@ begin
                         carryFlag <= C;
                     end if;
                     
-                    regULA <= ALUout(15 downto 0);
+                    regALU <= ALUout(15 downto 0);
                 
                     --next state logic
                     if decodedInstruction = PUSH then   
@@ -248,7 +248,7 @@ begin
                     end if;
                     
                 when Swbk =>
-                    registerFile(RGT) <= regULA;
+                    registerFile(RGT) <= regALU;
                     currentState <= Sfetch;
 					
 				when Sld =>
@@ -257,6 +257,11 @@ begin
 					
 				when Sst =>
 					currentState <= Sfetch;
+                    
+                when Sldsp =>
+                    regSP <= regALU;
+                    currentState <= Sfetch;
+                    
  		--TODO: *ATENTION!!!!!!* THIS MUST BE CHANGED TO:
 		--when Shalt =>
 		--WHEN EVERY SINGLE INSTRUCTION IS IMPLEMENTED!!!
@@ -295,8 +300,9 @@ begin
                 "00" & opA(15 downto 1)            	                        when decodedInstruction = SR0   else
                 "01" & opA(15 downto 1)            	                        when decodedInstruction = SR1   else
                 not opA                           	                        when decodedInstruction = NOT_A else 
+                opA                                                         when decodedInstruction = LDSP  else
                 std_logic_vector(signed(opA)        +   signed(negativeB))  when decodedInstruction = SUB   else 
-                std_logic_vector(signed(negativeA)  +   signed(opB))        when decodedInstruction = SUBI else
+                std_logic_vector(signed(negativeA)  +   signed(opB))        when decodedInstruction = SUBI  else
                 std_logic_vector(signed(opA)        +   signed(opB));
                 
     N <= '1' when (ALUout(15) = '1') else '0';
@@ -320,7 +326,7 @@ begin
 	
 	address <= 	regSP when currentState = Spush or  currentState = Ssbrt else
 				regPC when currentState = Sfetch else
-				regULA;
+				regALU;
     
 	--data out recieves data directly read from register file when operation is ST, otherwise opB **ATTENTION** ANY CHANGES TO opb MAY AFFECT THIS!!!!!
 	data_out <= registerFile(RS2) when regIR(15 downto 12) = x"A" else opB(15 downto 0);
