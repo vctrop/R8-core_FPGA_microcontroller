@@ -100,9 +100,11 @@ architecture behavioral of R8 is
     signal negativeA                 :   std_logic_vector(16 downto 0);		-- (negativeA = - opA)  
     signal negativeB                 :   std_logic_vector(16 downto 0);
 
-	-- sign extension
-	signal ext_signal_JMP_D	: std_logic_vector(5 downto 0);		-- JMP_D
-	signal ext_signal_JMPSRD 	: std_logic_vector(3 downto 0);		-- JMPSRD
+	-- Displacement extension
+	--signal ext_signal_JMP_D	        : std_logic_vector(5 downto 0);		-- JMP_D
+	--signal ext_signal_JSRD 	        : std_logic_vector(3 downto 0);		-- JSRD
+    signal ext_displacement_JMP_D   : std_logic_vector(15 downto 0);
+    signal ext_displacement_JSRD    : std_logic_vector(15 downto 0);
 	
 	
     -- Instructions formats
@@ -131,7 +133,7 @@ begin
                             NOT_A   when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"4" else                              
                             HALT    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"6" else
                             LDSP    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"7" else
-                            -- RTS     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"8" else
+                            
                             PUSH    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"A" else 
                             POP     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"9" else
 
@@ -161,9 +163,9 @@ begin
                                             (regIR(11 downto 10) = "11" and overflowFlag = '1')    -- JMPVD
                                         )   
                                     )  else 
-
-                            -- JSRR  when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"A" else
                             -- JSR   when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"B" else
+                            -- RTS     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"8" else
+                            -- JSRR  when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"A" else
                             -- JSRD  when regIR(15 downto 12) = x"F" else
                             NOP;
 
@@ -265,7 +267,7 @@ begin
 					
 				when Sjmp =>
 					regPC <= regALU;				-- Only jumps that pass the condition test reach this state
-					--TODO: implement JPSR(D,R) here !!
+					--TODO: implement JPSR(D,R) here !! ??????
 					currentState <= Sfetch;
                     
                 when Sldsp =>
@@ -281,6 +283,11 @@ begin
                     regSP <= regALU;                                -- regSP <- regSP + 1
                     currentState <= Sfetch;
                     
+                when Ssbrt =>
+                    regSP <= std_logic_vector(unsigned(regSP)-1);
+                    regPC <= regALU;
+                    currentState <= Sfetch;
+                    
  		--TODO: *ATENTION!!!!!!* THIS MUST BE CHANGED TO:
 		--when Shalt =>
 		--WHEN EVERY SINGLE INSTRUCTION IS IMPLEMENTED!!!
@@ -294,16 +301,22 @@ begin
     end process;
     
 	-- extended signal for JMP_D and JSRD operations
-	ext_signal_JMP_D  <= "111111" when regIR(9) = '1' else "000000";		-- JMP_D
-	ext_signal_JMPSRD <= "1111"   when regIR(11) = '1' else "0000"; 		-- JMPSRD
+	--ext_signal_JMP_D  <= "111111" when regIR(9) = '1' else "000000";		-- JMP_D
+	--ext_signal_JSRD <= "1111"   when regIR(11) = '1' else "0000"; 		-- JSRD
+    ext_displacement_JMP_D  <= std_logic_vector(resize(signed(regIR(9 downto 0))), regIR'length)
+    ext_displacement_JSRD   <= std_logic_vector(resize(signed(regIR(11 downto 0))), regIR'length);
+    
+    
 	
     --ALU operator selection
     opA(16) <= '0';             -- extra bit for considering carry
     opB(16) <= '0';
  
-    opA(15 downto 0) <= (x"00" & regIR(7 downto 0)) 	when instructionFormat2 else
-						(ext_signal_JMP_D & regIR(9 downto 0)) when decodedInstruction = JUMP_D else
-						(ext_signal_JMPSRD & regIR(11 downto 0)) when decodedInstruction = JSRD else
+    opA(15 downto 0) <= (x"00" & regIR(7 downto 0)) 	            when instructionFormat2             else
+						--(ext_signal_JMP_D & regIR(9 downto 0))      when decodedInstruction = JUMP_D    else
+						--(ext_signal_JSRD & regIR(11 downto 0))      when decodedInstruction = JSRD      else
+                        ext_displacement_JMP_D                      when decodedInstruction = JUMP_D    else
+                        ext_displacement_JSRD                       when decodedInstruction = JSRD      else 
                         regA;
                         
     opB(15 downto 0) <= regSP when decodedInstruction = RTS or decodedInstruction = POP else
@@ -331,9 +344,9 @@ begin
                 std_logic_vector(signed(negativeA)  +   signed(opB))        when decodedInstruction = SUBI  else
                 std_logic_vector(signed(opA)        +   signed(opB));
                 
-    N <= '1' when (ALUout(15) = '1') else '0';
-    Z <= '1' when (unsigned(ALUout(15 downto 0)) = 0) else '0';
-    C <= '1' when (ALUout(16) = '1') else '0';     
+    N <= '1' when (ALUout(15) = '1')                    else '0';
+    Z <= '1' when (unsigned(ALUout(15 downto 0)) = 0)   else '0';
+    C <= '1' when (ALUout(16) = '1')                    else '0';     
     V <= ((not msbA) and  (not msbB) and msbOut) or (msbA and      msbB  and (not msbOut)) when decodedInstruction = ADD or decodedInstruction = ADDI       else        -- overflow under addition
          ((not msbA) and       msbB  and msbOut) or (msbA and (not msbB) and (not msbOut)) when decodedInstruction = SUB                                    else        -- overflow under subtraction
          ((not msbB) and       msbA  and msbOut) or (msbB and (not msbA) and (not msbOut)) when decodedInstruction = SUBI;
@@ -348,8 +361,8 @@ begin
     ce <= '1' when rst = '0' and (currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst) else '0';
     rw <= '1' when currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld else '0';
 	
-	address <= 	regSP when currentState = Spush or  currentState = Ssbrt else
-				regPC when currentState = Sfetch else
+	address <= 	regSP when currentState = Spush or  currentState = Ssbrt    else
+				regPC when currentState = Sfetch                            else
 				regALU;
     
 	--data out recieves data directly read from register file when operation is ST, otherwise opB **ATTENTION** ANY CHANGES TO opb MAY AFFECT THIS!!!!!
