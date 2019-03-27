@@ -137,7 +137,7 @@ begin
 
                             -- -- Jump instructions (18). 
                             -- -- Here the status flags are tested to jump or not
-                            JUMP_R  when ir(15 downto 12) = x"C" and (
+                            JUMP_R  when regIR(15 downto 12) = x"C" and (
                                      regIR(3 downto 0) = x"0" or                           -- JMPR
                                     (regIR(3 downto 0) = x"1" and negativeFlag = '1') or   -- JMPNR
                                     (regIR(3 downto 0) = x"2" and zeroFlag = '1') or       -- JMPZR
@@ -302,8 +302,8 @@ begin
     opB(16) <= '0';
  
     opA(15 downto 0) <= (x"00" & regIR(7 downto 0)) 	when instructionFormat2 else
-						(ext_signal_JMP_D & regIR(9 downto 0) when decodedInstruction = JUMP_D else
-						(ext_signal_JMPSRD & regIR(11 downto 0) when decodedInstruction = JSRD else
+						(ext_signal_JMP_D & regIR(9 downto 0)) when decodedInstruction = JUMP_D else
+						(ext_signal_JMPSRD & regIR(11 downto 0)) when decodedInstruction = JSRD else
                         regA;
                         
     opB(15 downto 0) <= regSP when decodedInstruction = RTS or decodedInstruction = POP else
@@ -325,7 +325,7 @@ begin
                 "00" & opA(15 downto 1)            	                        when decodedInstruction = SR0   else
                 "01" & opA(15 downto 1)            	                        when decodedInstruction = SR1   else
                 not opA                           	                        when decodedInstruction = NOT_A else 
-                opA                                                         when decodedInstruction = LDSP or decodedInstruction = JMP_A or operation = JSR else
+                opA                                                         when decodedInstruction = LDSP or decodedInstruction = JUMP_A or decodedInstruction = JSR else
                 std_logic_vector(unsigned(opB)      +   1)                  when decodedInstruction = POP   else
                 std_logic_vector(signed(opA)        +   signed(negativeB))  when decodedInstruction = SUB   else 
                 std_logic_vector(signed(negativeA)  +   signed(opB))        when decodedInstruction = SUBI  else
