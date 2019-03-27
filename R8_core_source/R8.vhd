@@ -303,8 +303,8 @@ begin
 	-- extended signal for JMP_D and JSRD operations
 	--ext_signal_JMP_D  <= "111111" when regIR(9) = '1' else "000000";		-- JMP_D
 	--ext_signal_JSRD <= "1111"   when regIR(11) = '1' else "0000"; 		-- JSRD
-    ext_displacement_JMP_D  <= std_logic_vector(resize(signed(regIR(9 downto 0))), regIR'length)
-    ext_displacement_JSRD   <= std_logic_vector(resize(signed(regIR(11 downto 0))), regIR'length);
+    ext_displacement_JMP_D  <= std_logic_vector(resize(signed(regIR(9 downto 0)), regIR'length));
+    ext_displacement_JSRD   <= std_logic_vector(resize(signed(regIR(11 downto 0)), regIR'length));
     
     
 	
