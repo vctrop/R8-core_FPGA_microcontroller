@@ -55,7 +55,7 @@ architecture behavioral of R8 is
     type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Spop, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spush);
     type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
     
-    -- 
+    -- instruction type signal to facilitate boolean operations
      signal decodedInstruction : instruction;
     
     -- State registers
@@ -72,10 +72,10 @@ architecture behavioral of R8 is
     signal regA   : std_logic_vector(15 downto 0);
     signal regB   : std_logic_vector(15 downto 0);
     
-    -- Register file indices 
-    signal RS1   :   integer; --std_logic_vector(3 downto 0); -- is regIR(7 downto 4);
-    signal RS2   :   integer; --std_logic_vector(3 downto 0); -- is regIR(3 downto 0);
-    signal RGT   :   integer; --std_logic_vector(3 downto 0); -- is regIR(11 downto 8);
+    -- Register file adresses 
+    signal RS1   :   integer; -- source1 register address
+    signal RS2   :   integer; -- source2 register address
+    signal RGT   :   integer; -- target register address
     
     -- Status flag signals
     signal N        : std_logic;
@@ -90,16 +90,21 @@ architecture behavioral of R8 is
     alias carryFlag     : std_logic is regFlags(2);
     alias overflowFlag  : std_logic is regFlags(3);
     
-    --ALU signal for flag evaluation with an extra bit
+    --ALU signals for flag evaluation with an extra bit
     signal ALUout, opA, opB     :   std_logic_vector(16 downto 0);
     alias msbOut                :   std_logic is ALUout(15); 
     alias msbA                  :   std_logic is opA(15);
     alias msbB                  :   std_logic is opB(15);
     
-       
-    signal negativeA                 :   std_logic_vector(16 downto 0);
+    -- necessary signals for overflow evaluation on SUB and SUBI instructions
+    signal negativeA                 :   std_logic_vector(16 downto 0);		-- (negativeA = - opA)  
     signal negativeB                 :   std_logic_vector(16 downto 0);
 
+	-- sign extension
+	signal ext_signal_JMP_D	: std_logic_vector(5 downto 0);		-- JMP_D
+	signal ext_signal_JMPSRD 	: std_logic_vector(3 downto 0);		-- JMPSRD
+	
+	
     -- Instructions formats
     --      1: The target register is not source
     --      2: The target register is ALSO source
@@ -108,10 +113,10 @@ architecture behavioral of R8 is
 begin
     
     -- Instruction decodification
-    decodedInstruction <=   ADD     when regIR(15 downto 12) = x"0" else                               -- Log/arit 3 reg
-                            SUB     when regIR(15 downto 12) = x"1" else                               -- Log/arit 3 reg
-                            AAND    when regIR(15 downto 12) = x"2" else                               -- Log/arit 3 reg
-                            OOR     when regIR(15 downto 12) = x"3" else                               -- Log/arit 3 reg
+    decodedInstruction <=   ADD     when regIR(15 downto 12) = x"0" else                               
+                            SUB     when regIR(15 downto 12) = x"1" else                               
+                            AAND    when regIR(15 downto 12) = x"2" else                               
+                            OOR     when regIR(15 downto 12) = x"3" else                               
                             XXOR    when regIR(15 downto 12) = x"4" else 
                             ADDI    when regIR(15 downto 12) = x"5" else
                             SUBI    when regIR(15 downto 12) = x"6" else
@@ -123,43 +128,43 @@ begin
                             SL1     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"1" else
                             SR0     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"2" else
                             SR1     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"3" else
-                            NOT_A   when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"4" else                              -- Log/arit 3 reg
+                            NOT_A   when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"4" else                              
                             HALT    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"6" else
                             LDSP    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"7" else
-                            -- RTS     when ir(15 downto 12) = x"B" and ir(3 downto 0) = x"8" else
+                            -- RTS     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"8" else
                             PUSH    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"A" else 
                             POP     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"9" else
 
                             -- -- Jump instructions (18). 
                             -- -- Here the status flags are tested to jump or not
-                            -- JUMP_R  when ir(15 downto 12) = x"C" and (
-                                     -- ir(3 downto 0) = x"0" or                           -- JMPR
-                                    -- (ir(3 downto 0) = x"1" and negativeFlag = '1') or   -- JMPNR
-                                    -- (ir(3 downto 0) = x"2" and zeroFlag = '1') or       -- JMPZR
-                                    -- (ir(3 downto 0) = x"3" and carryFlag = '1') or      -- JMPCR
-                                    -- (ir(3 downto 0) = x"4" and overflowFlag = '1')      -- JMPVR
-                                    -- ) else 
+                            JUMP_R  when ir(15 downto 12) = x"C" and (
+                                     regIR(3 downto 0) = x"0" or                           -- JMPR
+                                    (regIR(3 downto 0) = x"1" and negativeFlag = '1') or   -- JMPNR
+                                    (regIR(3 downto 0) = x"2" and zeroFlag = '1') or       -- JMPZR
+                                    (regIR(3 downto 0) = x"3" and carryFlag = '1') or      -- JMPCR
+                                    (regIR(3 downto 0) = x"4" and overflowFlag = '1')      -- JMPVR
+                                    ) else 
 
-                            -- JUMP_A  when ir(15 downto 12) = x"C" and (
-                                     -- ir(3 downto 0) = x"5" or                           -- JMP
-                                    -- (ir(3 downto 0) = x"6" and negativeFlag = '1') or   -- JMPN
-                                    -- (ir(3 downto 0) = x"7" and zeroFlag = '1') or       -- JMPZ
-                                    -- (ir(3 downto 0) = x"8" and carryFlag = '1') or      -- JMPC
-                                    -- (ir(3 downto 0) = x"9" and overflowFlag = '1')      -- JMPV
-                                    -- ) else 
+                            JUMP_A  when regIR(15 downto 12) = x"C" and (
+                                     regIR(3 downto 0) = x"5" or                           -- JMP
+                                    (regIR(3 downto 0) = x"6" and negativeFlag = '1') or   -- JMPN
+                                    (regIR(3 downto 0) = x"7" and zeroFlag = '1') or       -- JMPZ
+                                    (regIR(3 downto 0) = x"8" and carryFlag = '1') or      -- JMPC
+                                    (regIR(3 downto 0) = x"9" and overflowFlag = '1')      -- JMPV
+                                    ) else 
 
-                            -- JUMP_D  when ir(15 downto 12) = x"D" or (                           -- JMPD
-                                        -- ir(15 downto 12) = x"E" and ( 
-                                            -- (ir(11 downto 10) = "00" and negativeFlag = '1') or -- JMPND
-                                            -- (ir(11 downto 10) = "01" and zeroFlag = '1') or     -- JMPZD
-                                            -- (ir(11 downto 10) = "10" and carryFlag = '1') or    -- JMPCD
-                                            -- (ir(11 downto 10) = "11" and overflowFlag = '1')    -- JMPVD
-                                        -- )   
-                                    -- )  else 
+                            JUMP_D  when regIR(15 downto 12) = x"D" or (                           -- JMPD
+                                        regIR(15 downto 12) = x"E" and ( 
+                                            (regIR(11 downto 10) = "00" and negativeFlag = '1') or -- JMPND
+                                            (regIR(11 downto 10) = "01" and zeroFlag = '1') or     -- JMPZD
+                                            (regIR(11 downto 10) = "10" and carryFlag = '1') or    -- JMPCD
+                                            (regIR(11 downto 10) = "11" and overflowFlag = '1')    -- JMPVD
+                                        )   
+                                    )  else 
 
-                            -- JSRR  when ir(15 downto 12) = x"C" and ir(3 downto 0) = x"A" else
-                            -- JSR   when ir(15 downto 12) = x"C" and ir(3 downto 0) = x"B" else
-                            -- JSRD  when ir(15 downto 12) = x"F" else
+                            -- JSRR  when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"A" else
+                            -- JSR   when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"B" else
+                            -- JSRD  when regIR(15 downto 12) = x"F" else
                             NOP;
 
     -- The target register is not source
@@ -188,7 +193,7 @@ begin
            
                 when Sfetch =>
                     regPC <= std_logic_vector(unsigned(regPC)+1);       -- PC++
-                    regIR <= data_in;                                   -- IR <= MEM[ADDRESS]
+                    regIR <= data_in;                                   -- regIR <= MEM[ADDRESS]
                     currentState <= Sreg;
                     
                 when Sreg =>
@@ -257,13 +262,18 @@ begin
 					
 				when Sst =>
 					currentState <= Sfetch;
+					
+				when Sjmp =>
+					regPC <= regALU;				-- Only jumps that pass the condition test reach this state
+					--TODO: implement JPSR(D,R) here !!
+					currentState <= Sfetch;
                     
                 when Sldsp =>
                     regSP <= regALU;                                -- regSP <- Rs1
                     currentState <= Sfetch;
                     
                 when Spush =>
-                    regSP <= std_logic_vector(unsigned(regSP)-1);  -- Doesn't use ULA because the decrement hardware is needed anyway (JSR)
+                    regSP <= std_logic_vector(unsigned(regSP)-1);  -- Doesn't use ALU because the decrement hardware is needed anyway (JSR)
                     currentState <= Sfetch;
                 
                 when Spop =>
@@ -283,22 +293,28 @@ begin
     
     end process;
     
-    --ULA operator selection
+	-- extended signal for JMP_D and JSRD operations
+	ext_signal_JMP_D  <= "111111" when regIR(9) = '1' else "000000";		-- JMP_D
+	ext_signal_JMPSRD <= "1111"   when regIR(11) = '1' else "0000"; 		-- JMPSRD
+	
+    --ALU operator selection
     opA(16) <= '0';             -- extra bit for considering carry
     opB(16) <= '0';
  
-    opA(15 downto 0) <= (x"00" & regIR(7 downto 0)) when instructionFormat2 or decodedInstruction = JUMP_D or decodedInstruction = JSRD else
+    opA(15 downto 0) <= (x"00" & regIR(7 downto 0)) 	when instructionFormat2 else
+						(ext_signal_JMP_D & regIR(9 downto 0) when decodedInstruction = JUMP_D else
+						(ext_signal_JMPSRD & regIR(11 downto 0) when decodedInstruction = JSRD else
                         regA;
                         
     opB(15 downto 0) <= regSP when decodedInstruction = RTS or decodedInstruction = POP else
-                        regPC when decodedInstruction=JUMP_R or decodedInstruction=JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  else
+                        regPC when decodedInstruction = JUMP_R or decodedInstruction = JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  else
                         regB;
     
     negativeA <= '0' & std_logic_vector(signed(not opA(15 downto 0)) + 1);
     negativeB <= '0' & std_logic_vector(signed(not opB(15 downto 0)) + 1);
     
     
-    --TODO: IMPLEMENTAR O RESTO DAS INSTRUÇÕES DA ULA QUANDO ADICIONARMOS SUPORTE A MAIS INSTRUÇÕES    
+    --TODO: IMPLEMENTAR O RESTO DAS INSTRUÇÕES DA ALU QUANDO ADICIONARMOS SUPORTE A MAIS INSTRUÇÕES    
     ALUout <=   opA and opB                                                 when decodedInstruction = AAND  else  
                 opA or  opB                                                 when decodedInstruction = OOR   else   
                 opA xor opB                                                 when decodedInstruction = XXOR  else
@@ -309,7 +325,7 @@ begin
                 "00" & opA(15 downto 1)            	                        when decodedInstruction = SR0   else
                 "01" & opA(15 downto 1)            	                        when decodedInstruction = SR1   else
                 not opA                           	                        when decodedInstruction = NOT_A else 
-                opA                                                         when decodedInstruction = LDSP  else
+                opA                                                         when decodedInstruction = LDSP or decodedInstruction = JMP_A or operation = JSR else
                 std_logic_vector(unsigned(opB)      +   1)                  when decodedInstruction = POP   else
                 std_logic_vector(signed(opA)        +   signed(negativeB))  when decodedInstruction = SUB   else 
                 std_logic_vector(signed(negativeA)  +   signed(opB))        when decodedInstruction = SUBI  else
@@ -317,9 +333,7 @@ begin
                 
     N <= '1' when (ALUout(15) = '1') else '0';
     Z <= '1' when (unsigned(ALUout(15 downto 0)) = 0) else '0';
-    C <= '1' when (ALUout(16) = '1') else '0';
-    -- TODO: IMPLEMENTAR MESMA LÓGICA DE OVERFLOW PARA INSTRUÇÕES IMEDIATAS (ADDI, SUBI)
-          
+    C <= '1' when (ALUout(16) = '1') else '0';     
     V <= ((not msbA) and  (not msbB) and msbOut) or (msbA and      msbB  and (not msbOut)) when decodedInstruction = ADD or decodedInstruction = ADDI       else        -- overflow under addition
          ((not msbA) and       msbB  and msbOut) or (msbA and (not msbB) and (not msbOut)) when decodedInstruction = SUB                                    else        -- overflow under subtraction
          ((not msbB) and       msbA  and msbOut) or (msbB and (not msbA) and (not msbOut)) when decodedInstruction = SUBI;
@@ -339,7 +353,6 @@ begin
 				regALU;
     
 	--data out recieves data directly read from register file when operation is ST, otherwise opB **ATTENTION** ANY CHANGES TO opb MAY AFFECT THIS!!!!!
-	--data_out <= registerFile(RS2) when regIR(15 downto 12) = x"A" else opB(15 downto 0);
 	data_out <= registerFile(RS2) when decodedInstruction = ST else opB(15 downto 0);
 	
 end behavioral;
