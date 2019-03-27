@@ -2,31 +2,27 @@
 --
 --  R8 PROCESSOR   -  GOLD VERSION  -  05/JAN/2017
 --
---  moraes - 30/09/2001  - project start
---  moraes - 22/11/2001  - instruction decoding bug correction
---  moraes - 22/03/2002  - store instruction correction            
---  moraes - 05/04/2003  - SIDLE state inclusion in the control unit
---  calazans - 02/05/2003  - translation of comments to English. Names of
---    some signals, entities, etc have been changed accordingly
---  carara - 03/2013 - project split in several files. Each entity is described in a file with the same name.
---  carara - 5/01/2017 - library std_logic_unsigned replaced by numeric_std
---
+--  Moraes          - 30/09/2001 - project start
+--  Moraes          - 22/11/2001 - instruction decoding bug correction
+--  Moraes          - 22/03/2002 - store instruction correction            
+--  Moraes          - 05/04/2003 - SIDLE state inclusion in the control unit
+--  Calazans        - 02/05/2003 - translation of comments to English. Names of some signals, entities, etc have been changed accordingly
+--  Carara          - 01/03/2013 - project split in several files. Each entity is described in a file with the same name.
+--  Carara          - 05/01/2017 - library std_logic_unsigned replaced by numeric_std
+--  Julio/Victor    - 27/03/2019 - full behavioral implementation
 -- 
---  Notes: 1) In this version, the register bank is designed using 
---    for-generate VHDL construction
+--  Notes: 1) In this version, the structural register bank is designed using for-generate VHDL construction
 --         2) The top-level R8 entity is
 --
 --      entity R8 is
---            port( clk,rst: in std_logic;
---                  data_in:  in  std_logic_vector(15 downto 0);    -- Data from memory
---                  data_out: out std_logic_vector(15 downto 0);    -- Data to memory
---                  address: out std_logic_vector(15 downto 0);     -- Address to memory
---                  ce,rw: out std_logic );                         -- Memory control
+--            port( clk,rst     : in std_logic;
+--                  data_in     : in  std_logic_vector(15 downto 0);    -- Data from memory
+--                  data_out    : out std_logic_vector(15 downto 0);    -- Data to memory
+--                  address     : out std_logic_vector(15 downto 0);    -- Address to memory
+--                  ce,rw       : out std_logic );                      -- Memory control
 --      end R8;
 -- 
 -------------------------------------------------------------------------
-
-
 
 -------------------------------------------------------------------------
 -- Design unit: R8
@@ -202,15 +198,13 @@ begin
                     regA <= registerFile(RS1);
                     regB <= registerFile(RS2);
                     
-                    if decodedInstruction = HALT then      -- HALT fount => stop generating microinstructions
+                    if decodedInstruction = HALT then
                         currentState <= Shalt;
                     else
                        currentState <= Salu;
                     end if;
                     
                 when Salu =>
-                    
-                    --flag register writing for certain instructions
                     if (instructionFormat1 or decodedInstruction = ADDI or decodedInstruction = SUBI) then
                         zeroFlag <= Z;
                         negativeFlag <= N;
@@ -222,9 +216,9 @@ begin
                     
                     regALU <= ALUout(15 downto 0);
                 
-                    --next state logic
+                    -- Next state logic
                     if decodedInstruction = PUSH then   
-                    currentState <= Spush;
+                        currentState <= Spush;
                 
                     elsif decodedInstruction = POP then   
                         currentState <= Spop;
@@ -250,7 +244,7 @@ begin
                     elsif decodedInstruction = JSRR or decodedInstruction = JSR or decodedInstruction = JSRD then   
                         currentState <= Ssbrt; 
                 
-                    else    -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
+                    else        -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
                         currentState <= Sfetch;   
                     end if;
                     
@@ -267,20 +261,19 @@ begin
 					
 				when Sjmp =>
 					regPC <= regALU;				-- Only jumps that pass the condition test reach this state
-					--TODO: implement JPSR(D,R) here !! ??????
 					currentState <= Sfetch;
                     
                 when Sldsp =>
-                    regSP <= regALU;                                -- regSP <- Rs1
+                    regSP <= regALU;
                     currentState <= Sfetch;
                     
                 when Spush =>
-                    regSP <= std_logic_vector(unsigned(regSP)-1);  -- Doesn't use ALU because the decrement hardware is needed anyway (JSR)
+                    regSP <= std_logic_vector(unsigned(regSP)-1);   -- Doesn't use ALU because the decrement hardware is needed anyway (Ssbrt)
                     currentState <= Sfetch;
                 
                 when Spop =>
                     registerFile(RGT) <= data_in;
-                    regSP <= regALU;                                -- regSP <- regSP + 1
+                    regSP <= regALU;
                     currentState <= Sfetch;
                     
                 when Ssbrt =>
@@ -293,9 +286,6 @@ begin
                     regSP <= regALU;
                     currentState <= Sfetch;
                     
- 		--TODO: *ATENTION!!!!!!* THIS MUST BE CHANGED TO:
-		--when Shalt =>
-		--WHEN EVERY SINGLE INSTRUCTION IS IMPLEMENTED!!!
                 when others  =>
                     currentState <= Shalt;              --HALT loops forever
                 
@@ -305,9 +295,7 @@ begin
     
     end process;
     
-	-- extended signal for JMP_D and JSRD operations
-	--ext_signal_JMP_D  <= "111111" when regIR(9) = '1' else "000000";		-- JMP_D
-	--ext_signal_JSRD <= "1111"   when regIR(11) = '1' else "0000"; 		-- JSRD
+	-- extend displacement for JMP_D and JSRD operations
     ext_displacement_JMP_D  <= std_logic_vector(resize(signed(regIR(9 downto 0)), regIR'length));
     ext_displacement_JSRD   <= std_logic_vector(resize(signed(regIR(11 downto 0)), regIR'length));
     
