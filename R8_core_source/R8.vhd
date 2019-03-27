@@ -101,8 +101,6 @@ architecture behavioral of R8 is
     signal negativeB                 :   std_logic_vector(16 downto 0);
 
 	-- Displacement extension
-	--signal ext_signal_JMP_D	        : std_logic_vector(5 downto 0);		-- JMP_D
-	--signal ext_signal_JSRD 	        : std_logic_vector(3 downto 0);		-- JSRD
     signal ext_displacement_JMP_D   : std_logic_vector(15 downto 0);
     signal ext_displacement_JSRD    : std_logic_vector(15 downto 0);
 	
@@ -137,6 +135,11 @@ begin
                             PUSH    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"A" else 
                             POP     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"9" else
 
+                            JSR     when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"B" else
+                            JSRR    when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"A" else
+                            JSRD    when regIR(15 downto 12) = x"F" else
+                            RTS     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"8" else
+                            
                             -- -- Jump instructions (18). 
                             -- -- Here the status flags are tested to jump or not
                             JUMP_R  when regIR(15 downto 12) = x"C" and (
@@ -163,10 +166,7 @@ begin
                                             (regIR(11 downto 10) = "11" and overflowFlag = '1')    -- JMPVD
                                         )   
                                     )  else 
-                            -- JSR   when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"B" else
-                            -- RTS     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"8" else
-                            -- JSRR  when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"A" else
-                            -- JSRD  when regIR(15 downto 12) = x"F" else
+                                    
                             NOP;
 
     -- The target register is not source
@@ -284,8 +284,13 @@ begin
                     currentState <= Sfetch;
                     
                 when Ssbrt =>
-                    regSP <= std_logic_vector(unsigned(regSP)-1);
                     regPC <= regALU;
+                    regSP <= std_logic_vector(unsigned(regSP)-1);
+                    currentState <= Sfetch;
+                    
+                when Srts =>
+                    regPC <= data_in;
+                    regSP <= regALU;
                     currentState <= Sfetch;
                     
  		--TODO: *ATENTION!!!!!!* THIS MUST BE CHANGED TO:
@@ -309,12 +314,10 @@ begin
     
 	
     --ALU operator selection
-    opA(16) <= '0';             -- extra bit for considering carry
+    opA(16) <= '0';                     -- extra bit for considering carry
     opB(16) <= '0';
  
     opA(15 downto 0) <= (x"00" & regIR(7 downto 0)) 	            when instructionFormat2             else
-						--(ext_signal_JMP_D & regIR(9 downto 0))      when decodedInstruction = JUMP_D    else
-						--(ext_signal_JSRD & regIR(11 downto 0))      when decodedInstruction = JSRD      else
                         ext_displacement_JMP_D                      when decodedInstruction = JUMP_D    else
                         ext_displacement_JSRD                       when decodedInstruction = JSRD      else 
                         regA;
@@ -338,8 +341,8 @@ begin
                 "00" & opA(15 downto 1)            	                        when decodedInstruction = SR0   else
                 "01" & opA(15 downto 1)            	                        when decodedInstruction = SR1   else
                 not opA                           	                        when decodedInstruction = NOT_A else 
-                opA                                                         when decodedInstruction = LDSP or decodedInstruction = JUMP_A or decodedInstruction = JSR else
-                std_logic_vector(unsigned(opB)      +   1)                  when decodedInstruction = POP   else
+                opA                                                         when decodedInstruction = LDSP or decodedInstruction = JUMP_A or decodedInstruction = JSR   else
+                std_logic_vector(unsigned(opB)      +   1)                  when decodedInstruction = POP or decodedInstruction = RTS                                   else
                 std_logic_vector(signed(opA)        +   signed(negativeB))  when decodedInstruction = SUB   else 
                 std_logic_vector(signed(negativeA)  +   signed(opB))        when decodedInstruction = SUBI  else
                 std_logic_vector(signed(opA)        +   signed(opB));

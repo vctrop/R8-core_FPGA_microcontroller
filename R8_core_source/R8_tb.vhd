@@ -34,7 +34,7 @@ begin
     RAM : entity work.Memory   
         generic map (
            SIZE         => 1024,    -- 1024 words (2KB)
-           imageFileName => "test_push_pop.txt"
+           imageFileName => "memory_images/test_subroutines.txt"
         )
         port map (
             clk     => clk,
