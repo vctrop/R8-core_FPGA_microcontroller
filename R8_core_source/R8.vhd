@@ -127,9 +127,9 @@ begin
                             HALT    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"6" else
                             LDSP    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"7" else
                             -- RTS     when ir(15 downto 12) = x"B" and ir(3 downto 0) = x"8" else
-                            -- POP     when ir(15 downto 12) = x"B" and ir(3 downto 0) = x"9" else
-                            -- PUSH    when ir(15 downto 12) = x"B" and ir(3 downto 0) = x"A" else 
-               
+                            PUSH    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"A" else 
+                            POP     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"9" else
+
                             -- -- Jump instructions (18). 
                             -- -- Here the status flags are tested to jump or not
                             -- JUMP_R  when ir(15 downto 12) = x"C" and (
@@ -259,7 +259,16 @@ begin
 					currentState <= Sfetch;
                     
                 when Sldsp =>
-                    regSP <= regALU;
+                    regSP <= regALU;                                -- regSP <- Rs1
+                    currentState <= Sfetch;
+                    
+                when Spush =>
+                    regSP <= std_logic_vector(unsigned(regSP)-1);  -- Doesn't use ULA because the decrement hardware is needed anyway (JSR)
+                    currentState <= Sfetch;
+                
+                when Spop =>
+                    registerFile(RGT) <= data_in;
+                    regSP <= regALU;                                -- regSP <- regSP + 1
                     currentState <= Sfetch;
                     
  		--TODO: *ATENTION!!!!!!* THIS MUST BE CHANGED TO:
@@ -275,7 +284,7 @@ begin
     end process;
     
     --ULA operator selection
-    opA(16) <= '0';             --extra bit for considering carry and overload
+    opA(16) <= '0';             -- extra bit for considering carry
     opB(16) <= '0';
  
     opA(15 downto 0) <= (x"00" & regIR(7 downto 0)) when instructionFormat2 or decodedInstruction = JUMP_D or decodedInstruction = JSRD else
@@ -289,7 +298,7 @@ begin
     negativeB <= '0' & std_logic_vector(signed(not opB(15 downto 0)) + 1);
     
     
-    --TODO: IMPLEMENTAR O RESTO DAS INSTRUÇÕES DA ULA QUANDO ADICIONARMOR SUPORTE A MAIS INSTRUÇÕES    
+    --TODO: IMPLEMENTAR O RESTO DAS INSTRUÇÕES DA ULA QUANDO ADICIONARMOS SUPORTE A MAIS INSTRUÇÕES    
     ALUout <=   opA and opB                                                 when decodedInstruction = AAND  else  
                 opA or  opB                                                 when decodedInstruction = OOR   else   
                 opA xor opB                                                 when decodedInstruction = XXOR  else
@@ -301,6 +310,7 @@ begin
                 "01" & opA(15 downto 1)            	                        when decodedInstruction = SR1   else
                 not opA                           	                        when decodedInstruction = NOT_A else 
                 opA                                                         when decodedInstruction = LDSP  else
+                std_logic_vector(unsigned(opB)      +   1)                  when decodedInstruction = POP   else
                 std_logic_vector(signed(opA)        +   signed(negativeB))  when decodedInstruction = SUB   else 
                 std_logic_vector(signed(negativeA)  +   signed(opB))        when decodedInstruction = SUBI  else
                 std_logic_vector(signed(opA)        +   signed(opB));
@@ -329,7 +339,8 @@ begin
 				regALU;
     
 	--data out recieves data directly read from register file when operation is ST, otherwise opB **ATTENTION** ANY CHANGES TO opb MAY AFFECT THIS!!!!!
-	data_out <= registerFile(RS2) when regIR(15 downto 12) = x"A" else opB(15 downto 0);
+	--data_out <= registerFile(RS2) when regIR(15 downto 12) = x"A" else opB(15 downto 0);
+	data_out <= registerFile(RS2) when decodedInstruction = ST else opB(15 downto 0);
 	
 end behavioral;
 

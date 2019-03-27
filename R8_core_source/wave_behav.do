@@ -11,6 +11,7 @@ add wave -noupdate /r8_tb/PROCESSOR/currentState
 add wave -noupdate -radix hexadecimal -childformat {{/r8_tb/PROCESSOR/regIR(15) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(14) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(13) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(12) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(11) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(10) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(9) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(8) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(7) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(6) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(5) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(4) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(3) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(2) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(1) -radix hexadecimal} {/r8_tb/PROCESSOR/regIR(0) -radix hexadecimal}} -radixshowbase 0 -subitemconfig {/r8_tb/PROCESSOR/regIR(15) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(14) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(13) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(12) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(11) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(10) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(9) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(8) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(7) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(6) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(5) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(4) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(3) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(2) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(1) {-height 15 -radix hexadecimal -radixshowbase 0} /r8_tb/PROCESSOR/regIR(0) {-height 15 -radix hexadecimal -radixshowbase 0}} /r8_tb/PROCESSOR/regIR
 add wave -noupdate -radix hexadecimal -radixshowbase 0 /r8_tb/PROCESSOR/regPC
 add wave -noupdate /r8_tb/PROCESSOR/regSP
+add wave -noupdate /r8_tb/PROCESSOR/registerFile
 add wave -noupdate -divider memory
 add wave -noupdate -radix hexadecimal /r8_tb/RAM/ce_n
 add wave -noupdate -radix hexadecimal /r8_tb/RAM/we_n
@@ -29,8 +30,8 @@ add wave -noupdate -format Literal /r8_tb/PROCESSOR/carryFlag
 add wave -noupdate -format Literal /r8_tb/PROCESSOR/zeroFlag
 add wave -noupdate -format Literal /r8_tb/PROCESSOR/negativeFlag
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {4184 ns} 0} {{Cursor 2} {4230 ns} 0}
-quietly wave cursor active 2
+WaveRestoreCursors {{Cursor 1} {1042 ns} 0} {{Cursor 2} {4230 ns} 0}
+quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -45,4 +46,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {3838 ns} {4381 ns}
+WaveRestoreZoom {4485 ns} {5028 ns}
