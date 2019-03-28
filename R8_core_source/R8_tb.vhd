@@ -11,7 +11,7 @@ use work.R8_pkg.all;
 entity R8_tb is
 end R8_tb;
 
-architecture behavioral of R8_tb is
+architecture behavioral_tb of R8_tb is
     
       signal clk : std_logic := '0';  
       signal rw, ce, rst, ce_n, we_n, oe_n : std_logic;
@@ -34,7 +34,8 @@ begin
     RAM : entity work.Memory   
         generic map (
            SIZE         => 1024,    -- 1024 words (2KB)
-           imageFileName => "memory_images/test_subroutines.txt"
+           imageFileName => "memory_images/Todas_Instrucoes_R8.txt"
+           --imageFileName => "memory_images/test_subroutines.txt"
         )
         port map (
             clk     => clk,
@@ -60,4 +61,56 @@ begin
             (others => 'Z');    
   
     
-end behavioral;
+end behavioral_tb;
+
+architecture structural_tb of R8_tb is
+    
+      signal clk : std_logic := '0';  
+      signal rw, ce, rst, ce_n, we_n, oe_n : std_logic;
+      signal dataR8, dataBus, addressR8, address : std_logic_vector(15 downto 0);    
+    
+begin
+    
+    PROCESSOR: entity work.R8(structural) 
+        port map (
+            clk         => clk, 
+            rst         => rst, 
+            data_in     => dataBus, 
+            data_out    => dataR8, 
+            address     => addressR8, 
+            ce          => ce, 
+            rw          => rw
+        );
+    
+    
+    RAM : entity work.Memory   
+        generic map (
+           SIZE         => 1024,    -- 1024 words (2KB)
+           imageFileName => "memory_images/Todas_Instrucoes_R8.txt"
+           --imageFileName => "memory_images/test_subroutines.txt"
+        )
+        port map (
+            clk     => clk,
+            ce_n    => ce_n, 
+            we_n    => we_n, 
+            oe_n    => oe_n, 
+            data    => dataBus, 
+            address => addressR8
+        );
+    
+    -- Generates the clock signal            
+    clk <= not clk after 10 ns;
+    
+    -- Generates the reset signal
+    rst <='1', '0' after 5 ns;        
+
+    -- Memory access control signals       
+    ce_n <= '0' when (ce='1') else '1';
+    oe_n <= '0' when (ce='1' and rw='1') else '1';       
+    we_n <= '0' when (ce='1' and rw='0') else '1';    
+        
+    dataBus <= dataR8 when ce = '1' and rw='0' else     -- Writing access
+            (others => 'Z');    
+  
+    
+end structural_tb;
