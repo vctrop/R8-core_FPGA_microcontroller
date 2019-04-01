@@ -18,7 +18,7 @@ entity R8_BRAM is
     );
 end R8_BRAM;
 
-architecture behavioral of R8_BRAM is
+architecture structural of R8_BRAM is
     
       signal clk, clk_mem, clk_div4 : std_logic;
       signal rw, ce, rst, ce_mem, ce_regDisp, rw_n : std_logic;
@@ -136,4 +136,4 @@ begin
     ce_mem <= '1' when (ce = '1' and addressR8(15) = '0') else '0';
     ce_regDisp <= '1' when ce = '1' and rw = '0' and addressR8(15) = '1' else '0';
     
-end behavioral;
+end structural;
