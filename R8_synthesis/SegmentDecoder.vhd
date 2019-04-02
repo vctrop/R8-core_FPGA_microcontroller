@@ -17,23 +17,22 @@ begin
     DECODER: process(digit)
     begin
         case digit is
-            when "0000" => segment <= "00000010"; -- "0"     
-            when "0001" => segment <= "10011110"; -- "1" 
-            when "0010" => segment <= "00100100"; -- "2" 
-            when "0011" => segment <= "00001100"; -- "3" 
-            when "0100" => segment <= "10011000"; -- "4" 
-            when "0101" => segment <= "01001000"; -- "5" 
-            when "0110" => segment <= "01000000"; -- "6" 
-            when "0111" => segment <= "00011110"; -- "7" 
-            when "1000" => segment <= "00000000"; -- "8"     
-            when "1001" => segment <= "00001000"; -- "9" 
-            when "1010" => segment <= "00000100"; -- "A"
-            when "1011" => segment <= "11000000"; -- "B"
-            when "1100" => segment <= "01100010"; -- "C"
-            when "1101" => segment <= "10000100"; -- "D"
-            when "1110" => segment <= "01100000"; -- "E"
-            when "1111" => segment <= "01110000"; -- "F"
-	    when others => segment <= "00000000";
+            when "0000" => segment <= "00000011"; -- "0"     
+            when "0001" => segment <= "10011111"; -- "1" 
+            when "0010" => segment <= "00100101"; -- "2" 
+            when "0011" => segment <= "00001101"; -- "3" 
+            when "0100" => segment <= "10011001"; -- "4" 
+            when "0101" => segment <= "01001001"; -- "5" 
+            when "0110" => segment <= "01000001"; -- "6" 
+            when "0111" => segment <= "00011111"; -- "7" 
+            when "1000" => segment <= "00000001"; -- "8"     
+            when "1001" => segment <= "00001001"; -- "9" 
+            when "1010" => segment <= "00000101"; -- "A"
+            when "1011" => segment <= "11000001"; -- "B"
+            when "1100" => segment <= "01100011"; -- "C"
+            when "1101" => segment <= "10000101"; -- "D"
+            when "1110" => segment <= "01100001"; -- "E"
+            when others => segment <= "01110001"; -- "F"
         end case; 
     end process;
 end sequential;

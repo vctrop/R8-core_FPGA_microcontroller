@@ -24,10 +24,10 @@ architecture structural of R8_BRAM is
       signal rw, ce, rst, ce_mem, ce_regDisp, rw_n : std_logic;
       signal dataR8, dataBus, addressR8  : std_logic_vector(15 downto 0);    
       signal regDisp    : std_logic_vector(15 downto 0);
-      alias  num0   : std_logic_vector is regDisp(3 downto 0);
-      alias  num1   : std_logic_vector is regDisp(7 downto 4);
-      alias  num2   : std_logic_vector is regDisp(11 downto 8);
-      alias  num3   : std_logic_vector is regDisp(15 downto 12);                  
+      alias  num3   : std_logic_vector is regDisp(3 downto 0);
+      alias  num2   : std_logic_vector is regDisp(7 downto 4);
+      alias  num1   : std_logic_vector is regDisp(11 downto 8);
+      alias  num0   : std_logic_vector is regDisp(15 downto 12);                  
       signal display0, display1, display2, display3 : std_logic_vector(7 downto 0);
 begin
     
@@ -47,7 +47,7 @@ begin
         generic map (
             DATA_WIDTH  => 16,       
             ADDR_WIDTH  => 15,         
-            IMAGE       => "memory_images/write_to_display_BRAM.txt"    
+            IMAGE       => "memory_images/contador_BRAM.txt"    
             )
         port map(  
             clk         => clk_mem,
@@ -75,7 +75,7 @@ begin
         );
         
     
-    REG_DISP: process(clk, rst)
+    REG_DISP: process(clk, rst, ce_regDisp)
     begin
         if rst = '1' then
             regDisp <= (others => '0');
@@ -126,8 +126,8 @@ begin
         
     -- Memory access control signals       
     rw_n   <= not rw;    
-    dataBus <= dataR8 when ce = '1' and rw='0' else     -- Writing access
-            (others => 'Z');    
+    --dataBus <= dataR8 when ce = '1' and rw='0' else     -- Writing access
+    --        (others => 'Z');    
     --memory clock is inverted to work at falling edge borders of the R8 clock
     clk_mem <= not clk;    
 

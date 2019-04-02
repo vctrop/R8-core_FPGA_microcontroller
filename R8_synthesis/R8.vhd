@@ -343,7 +343,7 @@ begin
     C <= '1' when (ALUout(16) = '1')                    else '0';     
     V <= ((not msbA) and  (not msbB) and msbOut) or (msbA and      msbB  and (not msbOut)) when decodedInstruction = ADD or decodedInstruction = ADDI       else        -- overflow under addition
          ((not msbA) and       msbB  and msbOut) or (msbA and (not msbB) and (not msbOut)) when decodedInstruction = SUB                                    else        -- overflow under subtraction
-         ((not msbB) and       msbA  and msbOut) or (msbB and (not msbA) and (not msbOut)) when decodedInstruction = SUBI;
+         ((not msbB) and       msbA  and msbOut) or (msbB and (not msbA) and (not msbOut));
     
     -- Register file access address
     RS1 <= to_integer(unsigned(regIR(7 downto 4)));
