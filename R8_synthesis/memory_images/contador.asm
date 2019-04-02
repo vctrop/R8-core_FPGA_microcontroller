@@ -38,8 +38,8 @@ espera:
             jmpzd #outer_loop
             jmpd  #inner_loop
 fim_conta:
-    pop r9
     pop r10
+    pop r9
     rts
 .endcode
 
