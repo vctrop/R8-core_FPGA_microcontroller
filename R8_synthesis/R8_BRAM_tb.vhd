@@ -7,10 +7,10 @@
 library IEEE;
 use IEEE.std_logic_1164.all;        
 
-entity R8_BRAM is
-end R8_BRAM;
+entity R8_BRAM_tb is
+end R8_BRAM_tb;
 
-architecture behavioral_tb of R8_tb is
+architecture testbench of R8_BRAM_tb is
     
       signal clk : std_logic := '0';  
       signal rst: std_logic;
@@ -21,10 +21,10 @@ begin
     
     R8_BRAM_BLOCK: entity work.R8_BRAM(structural) 
         port map (
-            board_clock     => clk;
-            board_rst       => rst;
-            display_en_n    => display_enable;     --7 segment display interface
-            display_data    => display_data;
+            board_clock     => clk,
+            board_rst       => rst,
+            display_en_n    => display_enable,     --7 segment display interface
+            display_data    => display_data
         );
         
     -- Generates the clock signal            
@@ -33,4 +33,4 @@ begin
     -- Generates the reset signal
     rst <='1', '0' after 5 ns;        
     
-end behavioral_tb;
+end testbench;

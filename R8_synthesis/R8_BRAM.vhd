@@ -47,7 +47,7 @@ begin
         generic map (
             DATA_WIDTH  => 16,       
             ADDR_WIDTH  => 15,         
-            IMAGE       => "memory_images/Todas_Instrucoes_R8.txt"    
+            IMAGE       => "memory_images/write_to_display_BRAM.txt"    
             )
         port map(  
             clk         => clk_mem,
