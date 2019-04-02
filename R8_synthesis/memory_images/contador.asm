@@ -22,13 +22,17 @@ loop:
 espera:
     push r9
     push r10
-    ldh r10, #00h             ; 
-    ldl r10, #3fh             ; the outer loop runs 63 times
-    ldh r9, #7fh              ; the inner loop runs 32767 times
-    ldl r9, #ffh
+    ldh r10, #00h                   ; 
+    ldl r10, #3fh                   ; the outer loop runs 63 times
+    ;ldh r10, #00h                  ; 
+    ;ldl r10, #02h                  ; the outer loop runs 2 times (for test only)
     outer_loop:
         subi r10, #1
         jmpzd #fim_conta
+        ldh r9, #7fh              
+        ldl r9, #ffh                ; the inner loop runs 32767 times
+        ;ldh r9, #00h              
+        ;ldl r9, #03h               ; the inner loop runs 3 times (for test only)
         inner_loop:
             subi r9, #1
             jmpzd #outer_loop
@@ -39,7 +43,3 @@ fim_conta:
     rts
 .endcode
 
-
-
-
-    
