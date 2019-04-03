@@ -23,18 +23,15 @@ espera:
     push r9
     push r10
     ldh r10, #00h                   ; 
-    ldl r10, #3fh                   ; the outer loop runs 63 times
-    ;ldh r10, #00h                  ; 
-    ;ldl r10, #02h                  ; the outer loop runs 2 times (for test only)
+    ldl r10, #6dh                   ; the outer loop runs 109 times (error of 81.54 us, not considering true outter loop jumps)
     outer_loop:
         subi r10, #1
         jmpzd #fim_conta
         ldh r9, #7fh              
         ldl r9, #ffh                ; the inner loop runs 32767 times
-        ;ldh r9, #00h              
-        ;ldl r9, #03h               ; the inner loop runs 3 times (for test only)
         inner_loop:
             subi r9, #1
+			nop
             jmpzd #outer_loop
             jmpd  #inner_loop
 fim_conta:

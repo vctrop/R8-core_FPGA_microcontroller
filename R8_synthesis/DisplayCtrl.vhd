@@ -56,7 +56,7 @@ begin
     process(clk, rst)
     begin
         if rst = '1' then
-            display_en_n <= "1111";     -- Disable all displays
+            --display_en_n <= "1111";     -- Disable all displays
             display <= (others=>'0');   -- Turn of all segments
             
         elsif rising_edge(clk) then
@@ -64,25 +64,36 @@ begin
                 display <= display + 1;     -- Select one display to enable
                 
                 -- Verifies the enabled display present the corresponding code
-                case display is
-                    when "00" =>    -- Right most display
-                        display_en_n <= "1110"; -- Enables the right most display  
-                        segments <= display0;   -- Presents the display0 input code
+                -- case display is
+                    -- when "00" =>    -- Right most display
+                        -- display_en_n <= "1110"; -- Enables the right most display  
+                        -- segments <= display0;   -- Presents the display0 input code
                     
-                    when "01" =>
-                        display_en_n <= "1101";
-                        segments <= display1;
+                    -- when "01" =>
+                        -- display_en_n <= "1101";
+                        -- segments <= display1;
                         
-                    when "10" =>
-                        display_en_n <= "1011";
-                        segments <= display2;
+                    -- when "10" =>
+                        -- display_en_n <= "1011";
+                        -- segments <= display2;
                         
-                    when others =>  -- -- Left most display 
-                        display_en_n <= "0111"; -- Enables the right most display 
-                        segments <= display3;   -- Presents the display3 input code
+                    -- when others =>  -- -- Left most display 
+                        -- display_en_n <= "0111"; -- Enables the right most display 
+                        -- segments <= display3;   -- Presents the display3 input code
                         
-                end case;
+                -- end case;
             end if;
         end if;
     end process;
+	
+	segments <= display0 when display = "00" else
+				display1 when display = "01" else
+				display2 when display = "10" else
+				display3;
+				
+	display_en_n <= "1110" when display = "00" and rst = '0' else
+					"1101" when display = "01" and rst = '0' else
+					"1011" when display = "10" and rst = '0' else
+					"0111" when display = "11" and rst = '0' else
+					"1111";
 end arch1;

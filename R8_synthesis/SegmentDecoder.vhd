@@ -11,28 +11,23 @@ entity SegmentDecoder is
 end SegmentDecoder;
 
 
-architecture sequential of SegmentDecoder is		 
+architecture combinational of SegmentDecoder is		 
 begin						
     --using output sequence as ABCDEFG. and activated on HIGH
-    DECODER: process(digit)
-    begin
-        case digit is
-            when "0000" => segment <= "00000011"; -- "0"     
-            when "0001" => segment <= "10011111"; -- "1" 
-            when "0010" => segment <= "00100101"; -- "2" 
-            when "0011" => segment <= "00001101"; -- "3" 
-            when "0100" => segment <= "10011001"; -- "4" 
-            when "0101" => segment <= "01001001"; -- "5" 
-            when "0110" => segment <= "01000001"; -- "6" 
-            when "0111" => segment <= "00011111"; -- "7" 
-            when "1000" => segment <= "00000001"; -- "8"     
-            when "1001" => segment <= "00001001"; -- "9" 
-            when "1010" => segment <= "00000101"; -- "A"
-            when "1011" => segment <= "11000001"; -- "B"
-            when "1100" => segment <= "01100011"; -- "C"
-            when "1101" => segment <= "10000101"; -- "D"
-            when "1110" => segment <= "01100001"; -- "E"
-            when others => segment <= "01110001"; -- "F"
-        end case; 
-    end process;
-end sequential;
+	segment <= 	"00000011" when  digit = x"0" else
+				"10011111" when  digit = x"1" else
+				"00100101" when  digit = x"2" else
+				"00001101" when  digit = x"3" else
+				"10011001" when  digit = x"4" else
+				"01001001" when  digit = x"5" else
+				"01000001" when  digit = x"6" else
+				"00011111" when  digit = x"7" else
+				"00000001" when  digit = x"8" else
+				"00001001" when  digit = x"9" else
+				"00000101" when  digit = x"A" else
+				"11000001" when  digit = x"B" else
+				"01100011" when  digit = x"C" else
+				"10000101" when  digit = x"D" else
+				"01100001" when  digit = x"E" else
+				"01110001";            -- "F"
+end combinational;
