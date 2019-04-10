@@ -7,24 +7,23 @@
 library IEEE;
 use IEEE.std_logic_1164.all;        
 
-entity R8_BRAM_tb is
-end R8_BRAM_tb;
+entity R8_uC_tb is
+end R8_uC_tb;
 
-architecture testbench of R8_BRAM_tb is
+architecture testbench of R8_uC_tb is
     
       signal clk : std_logic := '0';  
       signal rst: std_logic;
-      signal display_enable : std_logic_vector(3 downto 0);    
-      signal display_data   : std_logic_vector(7 downto 0);
+      signal port_io : std_logic_vector(15 downto 0);
+      
     
 begin
     
-    R8_BRAM_BLOCK: entity work.R8_BRAM(structural) 
+    R8_uC: entity work.R8_uC(structural) 
         port map (
             board_clock     => clk,
             board_rst       => rst,
-            display_en_n    => display_enable,     --7 segment display interface
-            display_data    => display_data
+            port_io         => port_io
         );
         
     -- Generates the clock signal            

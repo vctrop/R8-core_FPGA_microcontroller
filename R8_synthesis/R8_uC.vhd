@@ -13,15 +13,16 @@ entity R8_uC is
     port(
         board_clock     : in std_logic;
         board_rst       : in std_logic;
-        port_io         : inout std_logic_vector(15 downto 0);
+        port_io         : inout std_logic_vector(15 downto 0)
     );
 end R8_uC;
 
 architecture structural of R8_uC is
     
       signal clk, clk_mem, clk_div4 : std_logic;
-      signal rw, ce, rst, ce_mem, ce_regDisp, rw_n : std_logic;
-      signal dataR8, dataBus, addressR8  : std_logic_vector(15 downto 0);
+      signal rw, ce, rst, ce_mem, ce_io, ce_portA, rw_n : std_logic;
+      signal R8_out, R8_in, addressR8, mem_out, data_portA  : std_logic_vector(15 downto 0);
+      alias address_peripherals is addressR8(7 downto 4);
       
 begin
     
@@ -29,11 +30,11 @@ begin
         port map (
             clk         => clk, 
             rst         => rst, 
-            data_in     => dataBus, 
-            data_out    => dataR8, 
+            data_in     => R8_in, 
+            data_out    => R8_out, 
             address     => addressR8, 
             ce          => ce, 
-            rw          => rw
+            rw          => rw                                       -- 
         );
     
     
@@ -48,30 +49,30 @@ begin
             wr          => rw_n,              -- Write Enable (1: write; 0: read)
             en          => ce_mem,            -- Memory enable
             address     => addressR8(14 downto 0),
-            data_in     => dataR8,
-            data_out    => dataBus
+            data_in     => R8_out,
+            data_out    => mem_out
         );
         
     PORT_A : entity work.BidirectionalPort
         generic map (
             DATA_WIDTH          => 16,
-            PORT_DATA_ADDR      => ,
-            PORT_CONFIG_ADDR    => ,
-            PORT_ENABLE_ADDR    =>  
+            PORT_DATA_ADDR      => "10",
+            PORT_CONFIG_ADDR    => "01",
+            PORT_ENABLE_ADDR    => "00" 
         )
         port map(
             clk         => clk,
             rst         => rst, 
             
             -- Processor interface
-            data        => ,
-            address     => ,
-            rw          => ,                -- 0: read; 1: write
-            ce          => ,
+            data        => data_portA,
+            address     => addressR8(1 downto 0),
+            wr          => rw_n,                -- 1: write, 0: read
+            ce          => ce_portA,
             
             -- External interface
             port_io     => port_io
-        )
+        );
         
     CLOCK_MANAGER : entity work.ClockManager 
         port map(
@@ -79,7 +80,6 @@ begin
           clk_div2    => clk,
           clk_div4    => clk_div4
          );
-        
          
     RESET_SYNCHRONIZER: entity work.ResetSynchonizer 
         port map(
@@ -90,14 +90,20 @@ begin
         
     -- Memory access control signals       
     rw_n   <= not rw;    
-    --dataBus <= dataR8 when ce = '1' and rw='0' else     -- Writing access
-    --        (others => 'Z');    
+
+    data_portA <= R8_out when rw = '0' and ce_portA = '1' else      -- portA data i/o tristate
+            (others => 'Z'); 
+            
+    R8_in <=    data_portA when rw = '1' and ce_portA = '1' else                -- 
+                mem_out;
+
     --memory clock is inverted to work at falling edge borders of the R8 clock
     clk_mem <= not clk;    
 
     
     -- write enable decoder:
-    ce_mem <= '1' when (ce = '1' and addressR8(15) = '0') else '0';
-    ce_regDisp <= '1' when ce = '1' and rw = '0' and addressR8(15) = '1' else '0';
-    
+    ce_mem      <= '1' when ce = '1' and addressR8'left = '0' else '0';
+    ce_io       <= '1' when ce = '1' and addressR8'left = '1' else '0';
+    ce_portA    <= '1' when ce_io = '1' and address_peripherals = "0000" else '0';
+     
 end structural;
