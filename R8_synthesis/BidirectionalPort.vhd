@@ -46,26 +46,25 @@ begin
             elsif address = PORT_CONFIG_ADDR and ce = '1' and wr = '1' then
                 PortConfig <= data;
             end if;
-            --else address = PORT_DATA_ADDR then
-                for I in PortData'range loop
-                    if PortEnable(I) = '1' and (PortConfig(I) = '1' or (wr = '1' and address = PORT_DATA_ADDR)) then
-                        PortData(I) <= mux_data(I);
-                    end if;
-        
-                end loop;
-            --talvez ativar a escrita apenas para bits de input
+            --We set each bit in PortData individually
+            for I in PortData'range loop
+                if PortEnable(I) = '1' and (PortConfig(I) = '1' or (wr = '1' and address = PORT_DATA_ADDR)) then
+                    PortData(I) <= mux_data(I);
+                end if;
+            end loop;
             regSync2 <= regSync1;
-            regSync1 <= port_io_sig;    --syncronization registers are always enabled
+            regSync1 <= port_io_sig;    --synchronization registers are always enabled
         end if;
     end process;
     
     port_io_sig <= port_io;
     
-    GEN_MUX_TRISTATE:
+    
+    GEN_MUX_TRISTATE: 
     for I in mux_data'range generate
-        mux_data(I) <= data(I) when PortConfig(I) = '0' and PortEnable = '1' else
+        mux_data(I) <= data(I) when PortConfig(I) = '0' and PortEnable(I) = '1' else
                     regSync2(I);
-        port_io_sig(I)  <= PortData(I) when PortConfig(I) = '0' and PortEnable = '1' else
+        port_io_sig(I)  <= PortData(I) when PortConfig(I) = '0' and PortEnable(I) = '1' else
                         'Z';
     end generate GEN_MUX_TRISTATE;
 
