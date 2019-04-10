@@ -29,7 +29,7 @@ end BidirectionalPort ;
 architecture Behavioral of BidirectionalPort  is
     signal PortEnable, PortConfig, PortData : std_logic_vector(15 downto 0);
     signal regSync1, regSync2               : std_logic_vector(15 downto 0);
-    signal port_io_sig, mux_read, mux_data  : std_logic_vector(15 downto 0);
+    signal mux_read, mux_data  : std_logic_vector(15 downto 0);
 
 begin
     process(clk, rst)
@@ -48,23 +48,23 @@ begin
             end if;
             --We set each bit in PortData individually
             for I in PortData'range loop
-                if PortEnable(I) = '1' and (PortConfig(I) = '1' or (wr = '1' and address = PORT_DATA_ADDR)) then
+                if PortEnable(I) = '1' and (PortConfig(I) = '1' or (wr = '1' and address = PORT_DATA_ADDR and ce='1')) then
                     PortData(I) <= mux_data(I);
                 end if;
             end loop;
             regSync2 <= regSync1;
-            regSync1 <= port_io_sig;    --synchronization registers are always enabled
+            regSync1 <= port_io;    --synchronization registers are always enabled
         end if;
     end process;
     
-    port_io_sig <= port_io;
+    --port_io <= port_io_sig;
     
     
     GEN_MUX_TRISTATE: 
     for I in mux_data'range generate
         mux_data(I) <= data(I) when PortConfig(I) = '0' and PortEnable(I) = '1' else
                     regSync2(I);
-        port_io_sig(I)  <= PortData(I) when PortConfig(I) = '0' and PortEnable(I) = '1' else
+        port_io(I)  <= PortData(I) when PortConfig(I) = '0' and PortEnable(I) = '1' else
                         'Z';
     end generate GEN_MUX_TRISTATE;
 

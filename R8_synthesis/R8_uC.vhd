@@ -42,7 +42,7 @@ begin
         generic map (
             DATA_WIDTH  => 16,       
             ADDR_WIDTH  => 15,         
-            IMAGE       => "memory_images/contador_BRAM.txt"    
+            IMAGE       => "memory_images/write_portA_BRAM.txt"    
             )
         port map(  
             clk         => clk_mem,
@@ -102,8 +102,8 @@ begin
 
     
     -- write enable decoder:
-    ce_mem      <= '1' when ce = '1' and addressR8'left = '0' else '0';
-    ce_io       <= '1' when ce = '1' and addressR8'left = '1' else '0';
+    ce_mem      <= '1' when ce = '1' and addressR8(15) = '0' else '0';
+    ce_io       <= '1' when ce = '1' and addressR8(15) = '1' else '0';
     ce_portA    <= '1' when ce_io = '1' and address_peripherals = "0000" else '0';
      
 end structural;

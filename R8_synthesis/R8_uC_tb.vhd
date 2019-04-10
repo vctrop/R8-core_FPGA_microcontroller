@@ -30,6 +30,8 @@ begin
     clk <= not clk after 10 ns;
     
     -- Generates the reset signal
-    rst <='1', '0' after 5 ns;        
+    rst <='1', '0' after 5 ns;    
+
+    port_io <= (3 downto 0 => '1', others => 'Z');
     
 end testbench;
