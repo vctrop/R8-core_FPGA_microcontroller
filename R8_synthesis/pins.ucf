@@ -2,18 +2,22 @@ net "board_clock" loc = V10;
 //Middle button is reset
 net "board_rst" loc = B8;
 
-//Rightmost display is 0
-net "display_en_n[0]" loc = P17;
-net "display_en_n[1]" loc = P18;
-net "display_en_n[2]" loc = N15;
-net "display_en_n[3]" loc = N16;
+// LEDS
+net "port_io[15]" loc = T11;
+net "port_io[14]" loc = R11;
+net "port_io[13]" loc = N11;
+net "port_io[12]" loc = M11;
+net "port_io[11]" loc = V15;
+net "port_io[10]" loc = U15;
+net "port_io[9]" loc = V16;
+net "port_io[8]" loc = U16;
 
-//PINS are ABCDEFG.
-net "display_data[0]" loc = M13;
-net "display_data[1]" loc = L14;
-net "display_data[2]" loc = N14;
-net "display_data[3]" loc = M14;
-net "display_data[4]" loc = U18;
-net "display_data[5]" loc = U17;
-net "display_data[6]" loc = T18;
-net "display_data[7]" loc = T17;
+// Switches
+net "port_io[7]" loc = T5;
+net "port_io[6]" loc = V8;
+net "port_io[5]" loc = U8;
+net "port_io[4]" loc = N8;
+net "port_io[3]" loc = M8;
+net "port_io[2]" loc = V9;
+net "port_io[1]" loc = T9;
+net "port_io[0]" loc = T10;
