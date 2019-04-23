@@ -32,7 +32,7 @@ main:
 
 loop: 
 
-    ; Decimal increment
+    ; Decimal increment of independent counter
     xor r0, r0, r0          
     addi r0, #9             ; r0 <= 9
  
@@ -56,7 +56,7 @@ loop:
     jsrd #wait_sr
     jmpd #loop
     
-; 
+;          
 wait_sr:
     push r10
     push r11
@@ -74,13 +74,20 @@ wait_sr:
         ldl r6, #XXh        ; number of inner loop runs
         
         ; read bit 3 from regData (button)
-        ; if button is pressed, increment dependent counter and decrement r6 according to time used 
+        xor r0, r0, r0
+        ld button_press, r10, r0
+        ldh mask, #00h
+        ldl mask, #08h
+        and button_press, button_press, mask            ; if button is pressed, flag z = 0
+        
+        
+        ; implement: if button is pressed, increment dependent counter (decimal) and decrement r6 according to time used 
         
         inner_loop:
             subi r6, #1
             jmpzd #outter_loop
             
-            ; update display selector
+            ; implement: update display selector
             
             jmpd  #inner_loop
     
