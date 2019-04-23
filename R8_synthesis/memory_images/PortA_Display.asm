@@ -7,7 +7,7 @@ main:
     ldl r0, #FFh            
     ldsp r0                 ; Initiate stack pointer at the end of memory
     
-    xor r0, r0, r0          ; r0 <= x"0000"
+    
     
     ldh r8, #80h            ;
     ldl r8, #01h            ; r8 <= PortA regConfig address
@@ -24,15 +24,35 @@ main:
     ldh r10, #80h           ;
     ldl r10, #02h           ; r10 <= PortA regData address
     
-    xor rX, rX, rX       ; rX is the independent counter
-    xor rY, rY, rY       ; rY is the dependent counter
-    xor rZ, rZ, rZ       ; rZ is the display selector
-
-loop:
-    ; Split independent counter in decimal digits
-    ; Use decimal digit to index the seg_codes array and write it to regData
+    xor rIt, rIt, rIt       ; rX is the independent tens counter
+    xor rIu, rIu, rIu       ; rX is the independent units counter
+    xor rDt, rDt, rDt       ; rX is the dependent tens counter
+    xor rDu, rDu, rDu       ; rX is the dependent units counter
     
-    addi rX, #1            ; increment independent counter
+
+loop: 
+
+    ; Decimal increment
+    xor r0, r0, r0          
+    addi r0, #9             ; r0 <= 9
+ 
+    sub temp, rIu, r0       ; if rIu == r0
+    jmpzd #if1
+    jmp #else1_begin
+    if1:
+        xor rIu, rIu, rIu       ; riU <= 0
+        sub temp, rId, r0       ; if rId == 9
+        jmpzd #if11
+        jmp else11:
+        if11:
+            xor rId, rId, rId       ; rId <= 0
+        else11:
+            addi rId, #1            ; rId++
+            jmp #else1_end
+    else1_begin:
+        addi rIu, #1
+    else1_end:
+    
     jsrd #wait_sr
     jmpd #loop
     
