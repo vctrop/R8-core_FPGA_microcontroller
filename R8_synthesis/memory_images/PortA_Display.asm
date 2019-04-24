@@ -90,7 +90,7 @@ wait_sr:
     
     ldh r5, #XXh            ;
     ldl r5, #XXh            ; number of outer loop runs
-    outter_loop:
+    outer_loop:
         subi r5, #1
         jmpzd #wait_end
         ldh r6, #XXh        ;
@@ -114,12 +114,47 @@ wait_sr:
         continue:
         inner_loop:
             subi r6, #1			
-            jmpzd #write_display
+            jmpzd #write_display			;waits 4ms
             jmpd  #inner_loop
 			
 		write_display:
 		;writes display and chooses the enable
+		xor r0, r0, r0
+		ldh r6, #00h
+		ldl r6, #04h			;4 constant
+		ldh r7, #display_index
+		ldl r7, #display_index
+		ld r5, r7, r0
+		addi r5, #1				;display_index++
+		sub r6, r6, r5			; if display_index >= 4, reset it to zero
+		jmpnd  #reset_to_zero	; display_index >= 4
+		jmpzd  #reset_to_zero
+		jmpd   #store_index
+		reset_to_zero:
+			xor r5, r5, r5		; display_index = 0
+		store_index:
+		st r5, r7, r0
 		
+		ldh r8, #enable_display_mask
+		ldl r8, #enable_display_mask
+		ld r10, r8, r5		; loads the apropriate display_mask	
+		
+		ldh r9, #display
+		ldl r9, #display
+		ld r11, r9, r5		; loads the apropriate display 
+		
+		;7seg decoding:
+		ldh r7, #seg_codes
+		ldl r7, #seg_codes
+		ld r12, r7, r11		; loads the decoded display
+		
+		or r13, r12, r10 	;sets both enable and seg_code
+		
+		ldh r7, #80h            ;
+		ldl r7, #02h        	; r7 <= PortA regData address
+		st r13, r7, r0			;writes to display
+		jmpd #outer_loop
+
 wait_end:
     ;select display to be output and print on displays here:
     pop r15

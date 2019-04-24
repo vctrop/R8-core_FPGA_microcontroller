@@ -9,3 +9,13 @@ work/
 *.mti
 
 *.bak
+
+R8_synthesis/memory_images/test_decoder_BRAM\.txt
+
+R8_synthesis/memory_images/test_decoder\.asm
+
+R8_synthesis/memory_images/test_decoder\.bin
+
+R8_synthesis/memory_images/test_decoder\.sym
+
+R8_synthesis/memory_images/test_decoder\.txt
