@@ -28,7 +28,7 @@ main:
     ldl r0, #FFh            
     ldsp r0                 ; Initiate stack pointer at the end of memory
     
-    
+    xor r0, r0, r0
     
     ldh r8, #80h            ;
     ldl r8, #01h            ; r8 <= PortA regConfig address
@@ -66,14 +66,14 @@ wait_sr:
 	xor r13, r13, r13		 ; r13 is button_flag counter
 	
     ldh r15, #00h            ;
-    ldl r15, #03h            ; number of outer loop runs
+    ldl r15, #FAh            ; number of outer loop runs
 	
     wait_sr_outer_loop:
         subi r15, #1
         jmpzd   #wait_end
 		
-        ldh r14, #00h        ;
-        ldl r14, #03h        ; number of inner loop runs
+        ldh r14, #18h        ;
+        ldl r14, #6ah        ; number of inner loop runs
 		
         addi r13, #0
 		jmpzd #wait_sr_read_button
@@ -97,7 +97,7 @@ wait_sr:
 			jmpzd #wait_sr_increment
 			jmpd #wait_sr_use_time_continue
 			wait_sr_increment:
-				addi r13, #4 			;flag to disable button_inc for 16 ms
+				addi r13, #10 			;flag to disable button_inc for 16 ms
 				ldh r1, #00h
 				ldl r1, #02h
 				jsrd #decimal_increment
@@ -119,11 +119,17 @@ wait_sr:
 		
 		;increments time to compensate the time not spent incrementing or decrementing
         wait_sr_use_time_continue:
-			addi r14, #02h 		
+			;addi r14, #29h 		
 		
 		;waits 4ms = 200e6 cycles @ 50 MHz
         wait_sr_inner_loop:
             subi r14, #1			
+            ldh r6, #02h
+            ldl r6, #3ah
+            wait_sr_smaller_loop:
+                subi r6, #1
+                jmpzd #wait_sr_inner_loop
+                jmpd #wait_sr_smaller_loop
             jmpzd #wait_sr_write_display			
             jmpd  #wait_sr_inner_loop
 			

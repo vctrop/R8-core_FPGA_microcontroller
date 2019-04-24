@@ -42,7 +42,7 @@ begin
         generic map (
             DATA_WIDTH  => 16,       
             ADDR_WIDTH  => 15,         
-            IMAGE       => "memory_images/switches_to_leds_BRAM.txt"    
+            IMAGE       => "memory_images/PortA_Display_BRAM.txt"    
             )
         port map(  
             clk         => clk_mem,

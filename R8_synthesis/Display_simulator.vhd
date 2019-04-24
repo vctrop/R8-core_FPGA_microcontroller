@@ -5,8 +5,8 @@ use ieee.std_logic_unsigned.ALL;
 
 entity Display_simulator is
 	port(
-        segment : in std_logic_vector(7 downto 0)
-		digit   : out std_logic_vector(3 downto 0);
+        segment : in std_logic_vector(7 downto 0);
+		digit   : out std_logic_vector(3 downto 0)
 		
     );
 end Display_simulator;
@@ -29,6 +29,6 @@ begin
              x"C" when segment = "01100011" else
              x"D" when segment = "10000101" else
              x"E" when segment = "01100001" else
-             x"F"             -- "01110001"
+             x"F";             -- "01110001"
                     
 end combinational;

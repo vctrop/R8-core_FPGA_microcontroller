@@ -16,6 +16,7 @@ architecture testbench of R8_uC_tb is
       signal rst: std_logic;
       signal port_io : std_logic_vector(15 downto 0);
       
+      signal display_digit : std_logic_vector(3 downto 0);
     
 begin
     
@@ -26,12 +27,26 @@ begin
             port_io         => port_io
         );
         
+    Display_simulator: entity work.Display_simulator
+        port map(
+            segment => port_io(15 downto 8),
+            digit   => display_digit
+        );
+        
     -- Generates the clock signal            
     clk <= not clk after 10 ns;
     
     -- Generates the reset signal
     rst <='1', '0' after 5 ns;    
 
-    port_io <= (3 downto 0 => '1', others => 'Z');
+    --port_io <= (3 downto 0 => '1', others => 'Z');
     
+    -- process
+    -- begin
+        -- port_io(3 downto 2) <= "00";
+        -- wait for 500 ns;
+        -- port_io(3 downto 2) <= "11";
+        
+    -- end process;
+    port_io(3 downto 2) <= "00", "11" after 500 ns, "01" after 2 us;
 end testbench;

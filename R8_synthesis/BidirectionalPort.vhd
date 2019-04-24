@@ -36,7 +36,7 @@ begin
     begin
         if rst = '1' then
             PortEnable <= (others=>'0');
-            PortConfig <= (others=>'0');
+            PortConfig <= (others=>'1');
             PortData <= (others=>'0');
             RegSync1 <= (others=>'0');
             RegSync2 <= (others=>'0');
