@@ -1,3 +1,24 @@
+;register usage:
+;r0
+;r1
+;r2
+;r3
+;r4
+;r5
+;r6
+;r7
+;r8
+;r9
+;r10
+;r11
+;r12
+;r13
+;r14
+;r15
+;       PortA config:
+;   bits 15:8 => 7 seg display
+;   bits 7:4  => display enables, 7 being the leftmost and 4 the rightmost
+;   bits 3:2  => push buttons, 3 being increment and 2 decrement
 
 .org #00h
 .code
@@ -12,13 +33,13 @@ main:
     ldh r8, #80h            ;
     ldl r8, #01h            ; r8 <= PortA regConfig address
     ldh r9, #00h            ;
-    ldl r9, #0Fh            ; r9 <= PortA regConfig content
+    ldl r9, #0Ch            ; r9 <= PortA regConfig content
     st r9, r8, r0           ; Write regConfig
     
     ldh r8, #80h            ;
     ldl r8, #00h            ; r8 <= PortA regEnable address
     ldh r9, #FFh            ;
-    ldl r9, #F8h            ; r9 <= PortA regEnable content
+    ldl r9, #FCh            ; r9 <= PortA regEnable content
     st r9, r8, r0           ; Write regEnable content on regEnable address
    
     ldh r10, #80h           ;
@@ -32,7 +53,7 @@ main:
 
 loop: 
 
-    ; Decimal increment of independent counter
+    ; Decimal increment of independent counter -- need to call wait_sr 250 times
     xor r0, r0, r0          
     addi r0, #9             ; r0 <= 9
  
@@ -55,8 +76,10 @@ loop:
     
     jsrd #wait_sr
     jmpd #loop
-    
-;          
+;end main
+
+
+;4 ms wait = 200e3 cycles
 wait_sr:
     push r10
     push r11
@@ -66,32 +89,39 @@ wait_sr:
     push r15
     
     ldh r5, #XXh            ;
-    ldl r5, #XXh            ; number of outter loop runs
+    ldl r5, #XXh            ; number of outer loop runs
     outter_loop:
         subi r5, #1
         jmpzd #wait_end
         ldh r6, #XXh        ;
         ldl r6, #XXh        ; number of inner loop runs
         
-        ; read bit 3 from regData (button)
+        ; read bit 3 and 2 from regData (button_inc and button_dec)
         xor r0, r0, r0
         ld button_press, r10, r0
-        ldh mask, #00h
-        ldl mask, #08h
-        and button_press, button_press, mask            ; if button is pressed, flag z = 0
+        ldh mask_inc, #00h
+        ldl mask_inc, #08h
+        ldh mask_dec, #00h
+        ldl mask_dec, #04h
+        and button_inc_result, button_press, mask_inc            ; if button_inc is pressed, flag z = 0
+        jmzp #decrement_r6
+        and button_dec_result, button_press, mask_dec               
+        jmzp #decrement_r6
+        ; implement: if button is pressed, increment dependent counter (decimal)
         
-        
-        ; implement: if button is pressed, increment dependent counter (decimal) and decrement r6 according to time used 
-        
+        decrement_r6:
+        subi r6, #TIME_USED_ABOVE ;decrement r6 according to time used, check if condition is met(ps: jmpZ might be a bad idea ,V might be better)
+        jmpzd #outter_loop
+
         inner_loop:
             subi r6, #1
             jmpzd #outter_loop
-            
-            ; implement: update display selector
+            ;this should be a busy wait. The selector is to be set after the wait is finished (the wait must be 4ms)
             
             jmpd  #inner_loop
     
 wait_end:
+    ;select display to be output and print on displays here:
     pop r15
     pop r14
     pop r13
