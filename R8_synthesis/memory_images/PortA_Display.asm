@@ -53,7 +53,7 @@ main:
 
 loop: 
 
-    ; Decimal increment of independent counter -- need to call wait_sr 250 times
+    ; Decimal increment of independent counter
     xor r0, r0, r0          
     addi r0, #9             ; r0 <= 9
  
@@ -74,7 +74,7 @@ loop:
         addi rIu, #1
     else1_end:
     
-    jsrd #wait_sr
+    jsrd #wait_sr			;waits a second while pooling and multiplexing displays	
     jmpd #loop
 ;end main
 
@@ -104,22 +104,22 @@ wait_sr:
         ldh mask_dec, #00h
         ldl mask_dec, #04h
         and button_inc_result, button_press, mask_inc            ; if button_inc is pressed, flag z = 0
-        jmzp #decrement_r6
+        jmpzd #continue
+		
         and button_dec_result, button_press, mask_dec               
-        jmzp #decrement_r6
+        jmpzd #continue
+		
         ; implement: if button is pressed, increment dependent counter (decimal)
         
-        decrement_r6:
-        subi r6, #TIME_USED_ABOVE ;decrement r6 according to time used, check if condition is met(ps: jmpZ might be a bad idea ,V might be better)
-        jmpzd #outter_loop
-
+        continue:
         inner_loop:
-            subi r6, #1
-            jmpzd #outter_loop
-            ;this should be a busy wait. The selector is to be set after the wait is finished (the wait must be 4ms)
-            
+            subi r6, #1			
+            jmpzd #write_display
             jmpd  #inner_loop
-    
+			
+		write_display:
+		;writes display and chooses the enable
+		
 wait_end:
     ;select display to be output and print on displays here:
     pop r15
@@ -133,5 +133,8 @@ wait_end:
 .endcode
 
 .data
-    seg_codes:  db  #03h, #9Fh, #25h, #0Dh, #99h, #49h, #41h, #1Fh, #01h, #09h
+    seg_codes:  			db #0300h, #9F00h, #2500h, #0D00h, #9900h, #4900h, #4100h, #1F00h, #0100h, #0900h
+	display : 				db #0000h, #0000h, #0000h, #0000h						;display[0] = units timer, display[3] = tens counter
+	enable_display_mask : 	db #0010h, #0020h, #0040h, #0080h
+	display_index : 		db #0000h												;selects witch display is enabled	
 .enddata
