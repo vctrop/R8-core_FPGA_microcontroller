@@ -82,22 +82,22 @@ wait_sr:
         ; read bit 3 and 2 from regData (button_inc and button_dec)
 		wait_sr_read_button:
         xor r0, r0, r0
-		ldh r7, #80h            ;address to regData
+		ldh r7, #80h            ; address to regData
 		ldl r7, #02h
-        ld r10, r7, r0			;r10 <= regData
+        ld r10, r7, r0			; r10 <= regData
         ldh r5, #00h
-        ldl r5, #08h
+        ldl r5, #08h			; r5 <= increment button mask
         ldh r6, #00h
-        ldl r6, #04h
+        ldl r6, #04h			; r6 <= decrement button mask
 		
 		;checks for increment
         and r8, r10, r5            ; if button_inc is pressed, flag z = 0
         jmpzd #wait_sr_check_decrement
-			addi r13, #0				;increment only if dubounce flag is not set
-			jmpzd #wait_sr_increment
-			jmpd #wait_sr_use_time_continue
+			 addi r13, #0				;increment only if dubounce flag is not set
+			 jmpzd #wait_sr_increment
+			 jmpd #wait_sr_use_time_continue
 			wait_sr_increment:
-				addi r13, #10 			;flag to disable button_inc for 16 ms
+				addi r13, #100 			;flag to disable button_inc for 16 ms
 				ldh r1, #00h
 				ldl r1, #02h
 				jsrd #decimal_increment
@@ -111,7 +111,7 @@ wait_sr:
 			jmpzd #wait_sr_decrement
 			jmpd #wait_sr_use_time_continue
 			wait_sr_decrement:
-				addi r13, #4 			;flag to disable button_inc for 16 ms
+				addi r13, #100 			;flag to disable button_inc for 16 ms
 				ldh r1, #00h
 				ldl r1, #02h
 				jsrd #decimal_decrement
@@ -147,22 +147,22 @@ wait_sr:
 		
 		ldh r8, #enable_display_mask
 		ldl r8, #enable_display_mask
-		ld r10, r8, r5		; loads the apropriate display_mask	
+		ld r10, r8, r5		; loads the appropriate display_mask	
 		
 		ldh r9, #display
 		ldl r9, #display
-		ld r11, r9, r5		; loads the apropriate display 
+		ld r11, r9, r5		; loads the appropriate display 
 		
 		;7seg decoding:
 		ldh r7, #seg_codes
 		ldl r7, #seg_codes
 		ld r12, r7, r11		; loads the decoded display
 		
-		or r13, r12, r10 	;sets both enable and seg_code
+		or r8, r12, r10 	;sets both enable and seg_code
 		
 		ldh r7, #80h            ;
 		ldl r7, #02h        	; r7 <= PortA regData address
-		st r13, r7, r0			;writes to display
+		st r8, r7, r0			;writes to display
 		jmpd #wait_sr_outer_loop
 
 wait_end:
@@ -282,7 +282,7 @@ decimal_increment:
 
 .data
     seg_codes:  			db #0300h, #9F00h, #2500h, #0D00h, #9900h, #4900h, #4100h, #1F00h, #0100h, #0900h
-	display: 				db #0003h, #0002h, #0001h, #0000h						;display[0] = units timer, display[3] = tens counter
+	display: 				db #0000h, #0000h, #0000h, #0000h						;display[0] = units timer, display[3] = tens counter
 	enable_display_mask: 	db #00E0h, #00D0h, #00B0h, #0070h                       ;display enable active at 0
 	display_index: 			db #0000h												;selects witch display is enabled	
 .enddata
