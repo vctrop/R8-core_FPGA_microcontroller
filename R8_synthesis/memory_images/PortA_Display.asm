@@ -72,8 +72,8 @@ wait_sr:
         subi r15, #1
         jmpzd   #wait_end
 		
-        ldh r14, #18h        ;
-        ldl r14, #6ah        ; number of inner loop runs
+        ldh r14, #46h        ;
+        ldl r14, #50h        ; number of inner loop runs
 		
         addi r13, #0
 		jmpzd #wait_sr_read_button
@@ -119,19 +119,13 @@ wait_sr:
 		
 		;increments time to compensate the time not spent incrementing or decrementing
         wait_sr_use_time_continue:
-			;addi r14, #29h 		
+			addi r14, #29h 		
 		
-		;waits 4ms = 200e6 cycles @ 50 MHz
+		;waits 4ms = 200e3 cycles @ 50 MHz
         wait_sr_inner_loop:
-            subi r14, #1			
-            ldh r6, #02h
-            ldl r6, #3ah
-            wait_sr_smaller_loop:
-                subi r6, #1
-                jmpzd #wait_sr_inner_loop
-                jmpd #wait_sr_smaller_loop
-            jmpzd #wait_sr_write_display			
-            jmpd  #wait_sr_inner_loop
+			subi r14, #1
+            jmpzd #wait_sr_write_display
+            jmpd #wait_sr_inner_loop			
 			
 		wait_sr_write_display:
 		;writes display and chooses the enable
@@ -288,10 +282,7 @@ decimal_increment:
 
 .data
     seg_codes:  			db #0300h, #9F00h, #2500h, #0D00h, #9900h, #4900h, #4100h, #1F00h, #0100h, #0900h
-	display: 				db #0000h, #0000h, #0000h, #0000h						;display[0] = units timer, display[3] = tens counter
-	enable_display_mask: 	db #0010h, #0020h, #0040h, #0080h
+	display: 				db #0003h, #0002h, #0001h, #0000h						;display[0] = units timer, display[3] = tens counter
+	enable_display_mask: 	db #00E0h, #00D0h, #00B0h, #0070h                       ;display enable active at 0
 	display_index: 			db #0000h												;selects witch display is enabled	
 .enddata
-
-.org #8002h
-	data: db #0007h

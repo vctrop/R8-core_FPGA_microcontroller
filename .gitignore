@@ -19,3 +19,9 @@ R8_synthesis/memory_images/test_decoder\.bin
 R8_synthesis/memory_images/test_decoder\.sym
 
 R8_synthesis/memory_images/test_decoder\.txt
+
+R8_synthesis/memory_images/PortA_Display\.bin
+
+R8_synthesis/memory_images/PortA_Display\.sym
+
+R8_synthesis/memory_images/PortA_Display\.txt
