@@ -5,10 +5,11 @@ use ieee.numeric_std.all;
 
 entity BidirectionalPort  is
     generic (
-        DATA_WIDTH          : integer;                          -- Port width in bits
-        PORT_DATA_ADDR      : std_logic_vector(1 downto 0);     -- NÃO ALTERAR!
-        PORT_CONFIG_ADDR    : std_logic_vector(1 downto 0);     -- NÃO ALTERAR! 
-        PORT_ENABLE_ADDR    : std_logic_vector(1 downto 0)      -- NÃO ALTERAR!
+        DATA_WIDTH             : integer;                          -- Port width in bits
+        PORT_DATA_ADDR         : std_logic_vector(1 downto 0);     -- NÃO ALTERAR!
+        PORT_CONFIG_ADDR       : std_logic_vector(1 downto 0);     -- NÃO ALTERAR! 
+        PORT_ENABLE_ADDR       : std_logic_vector(1 downto 0);      -- NÃO ALTERAR!
+        PORT_IRQENABLE_ADDR    : std_logic_vector(1 downto 0)      -- NÃO ALTERAR!
     );
     port (  
         clk         : in std_logic;
@@ -19,6 +20,7 @@ entity BidirectionalPort  is
         address     : in std_logic_vector (1 downto 0);         -- NÃO ALTERAR!
         wr          : in std_logic;                             -- 1: write, 0: read
         ce          : in std_logic;
+        irq         : out std_logic_vector(DATA_WIDTH-1 downto 0); --interrupt signal
         
         -- External interface
         port_io     : inout std_logic_vector (DATA_WIDTH-1 downto 0)
@@ -27,24 +29,27 @@ end BidirectionalPort ;
 
 
 architecture Behavioral of BidirectionalPort  is
-    signal PortEnable, PortConfig, PortData : std_logic_vector(15 downto 0);
-    signal regSync1, regSync2               : std_logic_vector(15 downto 0);
-    signal mux_read, mux_data  : std_logic_vector(15 downto 0);
+    signal PortEnable, PortConfig, PortData, PortIrqEnable : std_logic_vector(DATA_WIDTH-1 downto 0);
+    signal regSync1, regSync2               : std_logic_vector(DATA_WIDTH-1 downto 0);
+    signal mux_read, mux_data  : std_logic_vector(DATA_WIDTH-1 downto 0);
 
 begin
     process(clk, rst)
     begin
         if rst = '1' then
-            PortEnable <= (others=>'0');
-            PortConfig <= (others=>'1');
-            PortData <= (others=>'0');
-            RegSync1 <= (others=>'0');
-            RegSync2 <= (others=>'0');
+            PortEnable      <= (others=>'0');
+            PortConfig      <= (others=>'1');
+            PortData        <= (others=>'0');
+            PortIrqEnable   <= (others=>'0');
+            RegSync1        <= (others=>'0');
+            RegSync2        <= (others=>'0');
         elsif rising_edge(clk) then
             if address = PORT_ENABLE_ADDR and ce = '1' and wr = '1' then
                 PortEnable <= data;
             elsif address = PORT_CONFIG_ADDR and ce = '1' and wr = '1' then
                 PortConfig <= data;
+            elsif address = PORT_IRQENABLE_ADDR and ce = '1' and wr = '1' then
+                PortIrqEnable <= data;
             end if;
             --We set each bit in PortData individually
             for I in PortData'range loop
@@ -72,8 +77,11 @@ begin
     data <= mux_read when ce = '1' and wr = '0' else
             (others=>'Z');
             
-    mux_read <= PortEnable when address = PORT_ENABLE_ADDR else 
-                PortConfig when address = PORT_CONFIG_ADDR else
+    mux_read <= PortEnable      when address = PORT_ENABLE_ADDR else 
+                PortConfig      when address = PORT_CONFIG_ADDR else
+                PortIrqEnable   when adress = PORT_IRQENABLE_ADDR else
                 PortData;
                 
+    --set interrupt request when input signal is high
+    irq <= PortData and PortConfig and PortEnable and PortIrqEnable;
 end Behavioral;

@@ -10,7 +10,7 @@
 --  Carara          - 01/03/2013 - project split in several files. Each entity is described in a file with the same name.
 --  Carara          - 05/01/2017 - library std_logic_unsigned replaced by numeric_std
 --  Julio/Victor    - 27/03/2019 - full behavioral implementation
--- 
+--  Julio/Victor    - 27/04/2019 - added interruption support, rti, pushf and popf instructions
 --  Notes: 1) In this version, the structural register bank is designed using for-generate VHDL construction
 --         2) The top-level R8 entity is
 --
@@ -33,6 +33,9 @@ use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
 entity R8 is
+    generic(
+        INTERRUPT_HANDLER_ADDR : std_logic_vector(15 downto 0) := 0x000f
+    )
     port( 
         clk     : in std_logic;
         rst     : in std_logic;
@@ -43,6 +46,9 @@ entity R8 is
         address : out std_logic_vector(15 downto 0);
         ce      : out std_logic;
         rw      : out std_logic 
+        
+        --interruption interface
+        irq     : in std_logic;
     );
 end R8;
 
@@ -51,9 +57,9 @@ architecture behavioral of R8 is
     type Instruction is ( 
         ADD, SUB, AAND, OOR, XXOR, ADDI, SUBI, NOT_A, 
         SL0, SL1, SR0, SR1,
-        LDL, LDH, LD, ST, LDSP, POP, PUSH,
+        LDL, LDH, LD, ST, LDSP, POP, PUSH, POPF, PUSHF
         JUMP_R, JUMP_A, JUMP_D, JSRR, JSR, JSRD,
-        NOP, HALT,  RTS
+        NOP, HALT,  RTS, RTI
     );
     type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Spop, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spush);
     type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
@@ -112,7 +118,10 @@ architecture behavioral of R8 is
     --      1: The target register is not source
     --      2: The target register is ALSO source
     signal instructionFormat1, instructionFormat2: boolean;
-
+    
+    --Flag to check if the processor is currently handling an interruption
+    signal InterruptionFlag  : std_logic;       
+    
 begin
     
     -- Instruction decoding
