@@ -62,7 +62,6 @@ begin
         end if;
     end process;
     
-    --port_io <= port_io_sig;
     
     
     GEN_MUX_TRISTATE: 

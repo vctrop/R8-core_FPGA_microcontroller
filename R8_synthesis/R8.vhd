@@ -48,7 +48,7 @@ entity R8 is
         rw      : out std_logic 
         
         --interruption interface
-        irq     : in std_logic;
+        intr     : in std_logic;
     );
 end R8;
 
@@ -61,7 +61,7 @@ architecture behavioral of R8 is
         JUMP_R, JUMP_A, JUMP_D, JSRR, JSR, JSRD,
         NOP, HALT,  RTS, RTI
     );
-    type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Spop, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spush);
+    type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spop, Spush, Spushf, Spopf, Sisr, Srti);
     type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
     
     -- instruction type signal to facilitate boolean operations
@@ -146,7 +146,8 @@ begin
                             
                             PUSH    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"A" else 
                             POP     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"9" else
-
+                            PUSHF   when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"D" else
+                            
                             JSR     when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"B" else
                             JSRR    when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"A" else
                             JSRD    when regIR(15 downto 12) = x"F" else
@@ -259,8 +260,14 @@ begin
                           
                     elsif decodedInstruction = JSRR or decodedInstruction = JSR or decodedInstruction = JSRD then   
                         currentState <= Ssbrt; 
+                        
+                    elsif decodedInstruction = PUSHF then
+                        currentState <= Spushf;
+                        
+                    elsif decodedInstruction = POPF then
+                        currentState <= Spopf;
                 
-                    else        -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
+                    else                                -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
                         currentState <= Sfetch;   
                     end if;
                     
@@ -283,15 +290,6 @@ begin
                     regSP <= regALU;
                     currentState <= Sfetch;
                     
-                when Spush =>
-                    regSP <= std_logic_vector(unsigned(regSP)-1);   -- Doesn't use ALU because the decrement hardware is needed anyway (Ssbrt)
-                    currentState <= Sfetch;
-                
-                when Spop =>
-                    registerFile(RGT) <= data_in;
-                    regSP <= regALU;
-                    currentState <= Sfetch;
-                    
                 when Ssbrt =>
                     regPC <= regALU;
                     regSP <= std_logic_vector(unsigned(regSP)-1);
@@ -301,7 +299,25 @@ begin
                     regPC <= data_in;
                     regSP <= regALU;
                     currentState <= Sfetch;
+                
+                when Spush =>
+                    regSP <= std_logic_vector(unsigned(regSP)-1);   -- Doesn't use ALU because the decrement hardware is needed anyway (Ssbrt)
+                    currentState <= Sfetch;
+                
+                when Spop =>
+                    registerFile(RGT) <= data_in;
+                    regSP <= regALU;
+                    currentState <= Sfetch;
                     
+                when Spushf =>
+                    regSP <= std_logic_vector(unsigned(regSP-1);
+                    currentState <= Sfetch;
+                    
+                when Spopf =>
+                    regFlags <= data_in(3 downto 0);
+                    regSP <= regALU;
+                    currentState <= Sfetch;
+                                    
                 when others  =>
                     currentState <= Shalt;              --HALT loops forever
                 
@@ -324,8 +340,9 @@ begin
                         ext_displacement_JSRD                       when decodedInstruction = JSRD      else 
                         regA;
                         
-    opB(15 downto 0) <= regSP when decodedInstruction = RTS or decodedInstruction = POP else
-                        regPC when decodedInstruction = JUMP_R or decodedInstruction = JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  else
+    opB(15 downto 0) <= regSP               when decodedInstruction = RTS or decodedInstruction = POP or decodedInstruction else
+                        regPC               when decodedInstruction = JUMP_R or decodedInstruction = JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  else
+                        (x"000" & regFlags) when decodedInstruction = PUSHF else
                         regB;
     
     negativeA <= '0' & std_logic_vector(signed(not opA(15 downto 0)) + 1);
@@ -341,8 +358,8 @@ begin
                 "00" & opA(15 downto 1)            	                        when decodedInstruction = SR0   else
                 "01" & opA(15 downto 1)            	                        when decodedInstruction = SR1   else
                 not opA                           	                        when decodedInstruction = NOT_A else 
-                opA                                                         when decodedInstruction = LDSP or decodedInstruction = JUMP_A or decodedInstruction = JSR   else
-                std_logic_vector(unsigned(opB)      +   1)                  when decodedInstruction = POP or decodedInstruction = RTS                                   else
+                opA                                                         when decodedInstruction = LDSP  or decodedInstruction = JUMP_A  or decodedInstruction = JSR else
+                std_logic_vector(unsigned(opB)      +   1)                  when decodedInstruction = POP   or decodedInstruction = POPF    or decodedInstruction = RTS else
                 std_logic_vector(signed(opA)        +   signed(negativeB))  when decodedInstruction = SUB   else 
                 std_logic_vector(signed(negativeA)  +   signed(opB))        when decodedInstruction = SUBI  else
                 std_logic_vector(signed(opA)        +   signed(opB));
@@ -361,11 +378,11 @@ begin
     RGT <= to_integer(unsigned(regIR(11 downto 8)));
     
     -- Memory access interface
-    ce <= '1' when rst = '0' and (currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst) else '0';
-    rw <= '1' when currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld else '0';
+    ce <= '1' when rst = '0' and (currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst or currentState = Spushf or currentState = Spopf) else '0';
+    rw <= '1' when currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld or currentState = Spopf else '0';
 	
-	address <= 	regSP when currentState = Spush or  currentState = Ssbrt    else
-				regPC when currentState = Sfetch                            else
+	address <= 	regSP   when currentState = Spush or currentState = Ssbrt or currentState = Spushf    else
+				regPC   when currentState = Sfetch                                                    else
 				regALU;
     
 	data_out <= registerFile(RS2) when decodedInstruction = ST else opB(15 downto 0);
