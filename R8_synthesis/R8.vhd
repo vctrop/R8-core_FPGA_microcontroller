@@ -146,6 +146,7 @@ begin
                             
                             PUSH    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"A" else 
                             POP     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"9" else
+                            POPF    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"C" else
                             PUSHF   when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"D" else
                             
                             JSR     when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"B" else
