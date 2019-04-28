@@ -20,13 +20,16 @@ end R8_uC;
 architecture structural of R8_uC is
     
       signal clk, clk_mem, clk_div4 : std_logic;
-      signal rw, ce, rst, ce_mem, ce_io, ce_portA, rw_n : std_logic;
-      signal R8_out, R8_in, addressR8, mem_out, data_portA  : std_logic_vector(15 downto 0);
+      signal rw, ce, rst, ce_mem, ce_io, ce_portA, rw_n, intr : std_logic;
+      signal R8_out, R8_in, addressR8, mem_out, data_portA, irq : std_logic_vector(15 downto 0);
       alias address_peripherals is addressR8(7 downto 4);
-      
+
 begin
     
     PROCESSOR: entity work.R8(behavioral) 
+        generic map(
+            INTERRUPT_HANDLER_ADDR => x"0040"
+        )
         port map (
             clk         => clk, 
             rst         => rst, 
@@ -34,7 +37,8 @@ begin
             data_out    => R8_out, 
             address     => addressR8, 
             ce          => ce, 
-            rw          => rw                                       -- 
+            rw          => rw,
+            intr 	=> intr                                      -- 
         );
     
     
@@ -58,7 +62,8 @@ begin
             DATA_WIDTH          => 16,
             PORT_DATA_ADDR      => "10",
             PORT_CONFIG_ADDR    => "01",
-            PORT_ENABLE_ADDR    => "00" 
+            PORT_ENABLE_ADDR    => "00",
+	    PORT_IRQENABLE_ADDR => "11" 
         )
         port map(
             clk         => clk,
@@ -69,9 +74,10 @@ begin
             address     => addressR8(1 downto 0),
             wr          => rw_n,                -- 1: write, 0: read
             ce          => ce_portA,
-            
+            irq		=> irq,
             -- External interface
             port_io     => port_io
+            
         );
         
     CLOCK_MANAGER : entity work.ClockManager 
@@ -88,6 +94,11 @@ begin
             rst_out  => rst
         );
         
+
+    --interrupt interface signals
+    intr <= irq(15) or irq(14) or irq(13) or irq(12) or irq(11) or irq(10) or irq(9) or irq(8) or
+    irq(7) or irq(6) or irq(5) or irq(4) or irq(3) or irq(2) or irq(1) or irq(0); 
+
     -- Memory access control signals       
     rw_n   <= not rw;    
 

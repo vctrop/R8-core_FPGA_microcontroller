@@ -78,7 +78,7 @@ begin
             
     mux_read <= PortEnable      when address = PORT_ENABLE_ADDR else 
                 PortConfig      when address = PORT_CONFIG_ADDR else
-                PortIrqEnable   when adress = PORT_IRQENABLE_ADDR else
+                PortIrqEnable   when address = PORT_IRQENABLE_ADDR else
                 PortData;
                 
     --set interrupt request when input signal is high

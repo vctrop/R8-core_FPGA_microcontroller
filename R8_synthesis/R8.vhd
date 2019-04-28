@@ -34,8 +34,8 @@ use IEEE.numeric_std.all;
 
 entity R8 is
     generic(
-        INTERRUPT_HANDLER_ADDR : std_logic_vector(15 downto 0) := 0x000f
-    )
+        INTERRUPT_HANDLER_ADDR : std_logic_vector(15 downto 0) := x"000f"
+    );
     port( 
         clk     : in std_logic;
         rst     : in std_logic;
@@ -45,10 +45,10 @@ entity R8 is
         data_out: out std_logic_vector(15 downto 0);
         address : out std_logic_vector(15 downto 0);
         ce      : out std_logic;
-        rw      : out std_logic 
+        rw      : out std_logic; 
         
         --interruption interface
-        intr     : in std_logic;
+        intr     : in std_logic
     );
 end R8;
 
@@ -57,11 +57,11 @@ architecture behavioral of R8 is
     type Instruction is ( 
         ADD, SUB, AAND, OOR, XXOR, ADDI, SUBI, NOT_A, 
         SL0, SL1, SR0, SR1,
-        LDL, LDH, LD, ST, LDSP, POP, PUSH, POPF, PUSHF
+        LDL, LDH, LD, ST, LDSP, POP, PUSH, POPF, PUSHF,
         JUMP_R, JUMP_A, JUMP_D, JSRR, JSR, JSRD,
-        NOP, HALT,  RTS, RTI
+        NOP, HALT,  RTS, RTI, JMP_INTR
     );
-    type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spop, Spush, Spushf, Spopf, Sisr, Srti);
+    type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spop, Spush, Spushf, Spopf, Sisr, Srti, Sintr);
     type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
     
     -- instruction type signal to facilitate boolean operations
@@ -120,10 +120,9 @@ architecture behavioral of R8 is
     signal instructionFormat1, instructionFormat2: boolean;
     
     --Flag to check if the processor is currently handling an interruption
-    signal InterruptionFlag  : std_logic;       
-    
+    signal InterruptionStatus  : std_logic;       
+
 begin
-    
     -- Instruction decoding
     decodedInstruction <=   ADD     when regIR(15 downto 12) = x"0" else                               
                             SUB     when regIR(15 downto 12) = x"1" else                               
@@ -153,7 +152,8 @@ begin
                             JSRR    when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"A" else
                             JSRD    when regIR(15 downto 12) = x"F" else
                             RTS     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"8" else
-                            
+                            RTI     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"B" else
+
                             -- -- Jump instructions (18). 
                             -- -- Here the status flags are tested to jump or not
                             JUMP_R  when regIR(15 downto 12) = x"C" and (
@@ -180,7 +180,8 @@ begin
                                             (regIR(11 downto 10) = "11" and overflowFlag = '1')    -- JMPVD
                                         )   
                                     )  else 
-                                    
+
+                            JMP_INTR when regIR = x"EFFF" else                                      --reserved for interruption handler jump
                             NOP;
 
     -- The target register is not source
@@ -201,6 +202,7 @@ begin
             regA            <= (others => '0');
             regB            <= (others => '0');
             regFlags        <= (others => '0');
+            InterruptionStatus <= '0';
             
         elsif rising_edge(clk) then    
             case currentState is
@@ -209,9 +211,15 @@ begin
            
                 when Sfetch =>
                     regPC <= std_logic_vector(unsigned(regPC)+1);       -- PC++
-                    regIR <= data_in;                                   -- regIR <= MEM[ADDRESS]
+                    if intr ='1' and InterruptionStatus = '0' then
+                        InterruptionStatus <= '1';
+                        currentState <= Sintr; 
+                        regIR <= x"EFFF";                       --JMP_INTR microinstruction   
+                    else    
+                        regIR <= data_in;                                   -- regIR <= MEM[ADDRESS]
+                    end if;
                     currentState <= Sreg;
-                    
+
                 when Sreg =>
                     regA <= registerFile(RS1);
                     regB <= registerFile(RS2);
@@ -243,7 +251,10 @@ begin
                     
                     elsif decodedInstruction = RTS then   
                         currentState <= Srts;
-                
+
+                    elsif decodedInstruction = RTI then   
+                        currentState <= Srti;        
+
                     elsif decodedInstruction = LDSP then   
                         currentState <= Sldsp;
                     
@@ -267,7 +278,10 @@ begin
                         
                     elsif decodedInstruction = POPF then
                         currentState <= Spopf;
-                
+
+                    elsif decodedInstruction = JMP_INTR then
+                            currentState <= Sintr;
+                            
                     else                                -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
                         currentState <= Sfetch;   
                     end if;
@@ -301,6 +315,12 @@ begin
                     regSP <= regALU;
                     currentState <= Sfetch;
                 
+                when Srti =>
+                    InterruptionStatus <= '0';                     --returns from interruption
+                    regPC <= data_in;
+                    regSP <= regALU;
+                    currentState <= Sfetch;
+                
                 when Spush =>
                     regSP <= std_logic_vector(unsigned(regSP)-1);   -- Doesn't use ALU because the decrement hardware is needed anyway (Ssbrt)
                     currentState <= Sfetch;
@@ -311,14 +331,19 @@ begin
                     currentState <= Sfetch;
                     
                 when Spushf =>
-                    regSP <= std_logic_vector(unsigned(regSP-1);
+                    regSP <= std_logic_vector(unsigned(regSP)-1);
                     currentState <= Sfetch;
                     
                 when Spopf =>
                     regFlags <= data_in(3 downto 0);
                     regSP <= regALU;
                     currentState <= Sfetch;
-                                    
+                    
+                when Sintr =>
+                    regSP <= std_logic_vector(unsigned(regSP)-1);
+                    regPC <= INTERRUPT_HANDLER_ADDR;
+                    currentState <= Sfetch;
+
                 when others  =>
                     currentState <= Shalt;              --HALT loops forever
                 
@@ -341,7 +366,7 @@ begin
                         ext_displacement_JSRD                       when decodedInstruction = JSRD      else 
                         regA;
                         
-    opB(15 downto 0) <= regSP               when decodedInstruction = RTS or decodedInstruction = POP or decodedInstruction else
+    opB(15 downto 0) <= regSP               when decodedInstruction = RTS or decodedInstruction = POP or decodedInstruction = POPF else
                         regPC               when decodedInstruction = JUMP_R or decodedInstruction = JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  else
                         (x"000" & regFlags) when decodedInstruction = PUSHF else
                         regB;
@@ -360,7 +385,7 @@ begin
                 "01" & opA(15 downto 1)            	                        when decodedInstruction = SR1   else
                 not opA                           	                        when decodedInstruction = NOT_A else 
                 opA                                                         when decodedInstruction = LDSP  or decodedInstruction = JUMP_A  or decodedInstruction = JSR else
-                std_logic_vector(unsigned(opB)      +   1)                  when decodedInstruction = POP   or decodedInstruction = POPF    or decodedInstruction = RTS else
+                std_logic_vector(unsigned(opB)      +   1)                  when decodedInstruction = POP   or decodedInstruction = POPF    or decodedInstruction = RTS or decodedInstruction = RTI else
                 std_logic_vector(signed(opA)        +   signed(negativeB))  when decodedInstruction = SUB   else 
                 std_logic_vector(signed(negativeA)  +   signed(opB))        when decodedInstruction = SUBI  else
                 std_logic_vector(signed(opA)        +   signed(opB));
@@ -379,13 +404,15 @@ begin
     RGT <= to_integer(unsigned(regIR(11 downto 8)));
     
     -- Memory access interface
-    ce <= '1' when rst = '0' and (currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst or currentState = Spushf or currentState = Spopf) else '0';
-    rw <= '1' when currentState = Sfetch or currentState = Srts or currentState = Spop or currentState = Sld or currentState = Spopf else '0';
+    ce <= '1' when rst = '0' and (currentState = Sfetch or currentState = Srts or currentState = Srti or currentState = Spop or currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst or currentState = Spushf or currentState = Spopf or currentState = Sintr) else '0';
+    rw <= '1' when currentState = Sfetch or currentState = Srts or currentState = Srti or currentState = Spop or currentState = Sld or currentState = Spopf or currentState = Sintr else '0';
 	
-	address <= 	regSP   when currentState = Spush or currentState = Ssbrt or currentState = Spushf    else
+	address <= 	regSP   when currentState = Spush or currentState = Ssbrt or currentState = Spushf  or currentState = Sintr  else
 				regPC   when currentState = Sfetch                                                    else
 				regALU;
     
-	data_out <= registerFile(RS2) when decodedInstruction = ST else opB(15 downto 0);
+    data_out <= registerFile(RS2) when decodedInstruction = ST else
+                regPC             when currentState = Sintr    else
+                opB(15 downto 0);
 	
 end behavioral;
