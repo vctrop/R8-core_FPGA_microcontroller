@@ -181,7 +181,7 @@ begin
                                         )   
                                     )  else 
 
-                            JMP_INTR when regIR = x"EFFF" else                                      --reserved for interruption handler jump
+                            JMP_INTR when regIR = x"B00E" else                                      --reserved for interruption handler jump
                             NOP;
 
     -- The target register is not source
@@ -213,7 +213,7 @@ begin
                     if intr ='1' and InterruptionStatus = '0' then
                         InterruptionStatus <= '1';
                         currentState <= Sintr; 
-                        regIR <= x"EFFF";                                       --JMP_INTR microinstruction   
+                        regIR <= x"B00E";                                       --JMP_INTR microinstruction   
                     else    
                         regIR <= data_in;                                       -- regIR <= MEM[ADDRESS]
                         regPC <= std_logic_vector(unsigned(regPC)+1);           -- PC++
@@ -280,9 +280,6 @@ begin
                     elsif decodedInstruction = POPF then
                         currentState <= Spopf;
 
-                    --elsif decodedInstruction = JMP_INTR then
-                    --        currentState <= Sintr;
-                            
                     else                                -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
                         currentState <= Sfetch;   
                     end if;

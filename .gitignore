@@ -27,3 +27,7 @@ R8_synthesis/memory_images/PortA_Display\.sym
 R8_synthesis/memory_images/PortA_Display\.txt
 
 *.opt
+
+*.bin
+
+*.sym
