@@ -46,7 +46,7 @@ begin
         generic map (
             DATA_WIDTH  => 16,       
             ADDR_WIDTH  => 15,         
-            IMAGE       => "memory_images/PortA_Display_BRAM.txt"    
+            IMAGE       => "memory_images/test_interruption_BRAM.txt"    
             )
         port map(  
             clk         => clk_mem,
@@ -96,9 +96,9 @@ begin
         
 
     --interrupt interface signals
-    intr <= irq(15) or irq(14) or irq(13) or irq(12) or irq(11) or irq(10) or irq(9) or irq(8) or
-    irq(7) or irq(6) or irq(5) or irq(4) or irq(3) or irq(2) or irq(1) or irq(0); 
-
+    intr <= irq(15) or irq(14) or irq(13) or irq(12) or irq(11) or irq(10) or irq(9) or irq(8) or        
+        irq(7) or irq(6) or irq(5) or irq(4) or irq(3) or irq(2) or irq(1) or irq(0); 
+    
     -- Memory access control signals       
     rw_n   <= not rw;    
 
@@ -116,5 +116,6 @@ begin
     ce_mem      <= '1' when ce = '1' and addressR8(15) = '0' else '0';
     ce_io       <= '1' when ce = '1' and addressR8(15) = '1' else '0';
     ce_portA    <= '1' when ce_io = '1' and address_peripherals = "0000" else '0';
-     
+    
+
 end structural;

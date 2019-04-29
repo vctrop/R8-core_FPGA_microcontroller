@@ -196,7 +196,7 @@ begin
             currentState <= Sidle;
             registerFile    <= (others => (others=>'0'));	
             regPC           <= (others => '0');
-            regSP           <= (others => '0');
+            regSP           <= x"7FFF";                     --conventional stack start adress
             regALU          <= (others => '0');
             regIR           <= (others => '0');
             regA            <= (others => '0');
@@ -210,15 +210,16 @@ begin
                     currentState <= Sfetch;
            
                 when Sfetch =>
-                    regPC <= std_logic_vector(unsigned(regPC)+1);       -- PC++
                     if intr ='1' and InterruptionStatus = '0' then
                         InterruptionStatus <= '1';
                         currentState <= Sintr; 
-                        regIR <= x"EFFF";                       --JMP_INTR microinstruction   
+                        regIR <= x"EFFF";                                       --JMP_INTR microinstruction   
                     else    
-                        regIR <= data_in;                                   -- regIR <= MEM[ADDRESS]
+                        regIR <= data_in;                                       -- regIR <= MEM[ADDRESS]
+                        regPC <= std_logic_vector(unsigned(regPC)+1);           -- PC++
+                        currentState <= Sreg;
                     end if;
-                    currentState <= Sreg;
+                    
 
                 when Sreg =>
                     regA <= registerFile(RS1);
@@ -279,8 +280,8 @@ begin
                     elsif decodedInstruction = POPF then
                         currentState <= Spopf;
 
-                    elsif decodedInstruction = JMP_INTR then
-                            currentState <= Sintr;
+                    --elsif decodedInstruction = JMP_INTR then
+                    --        currentState <= Sintr;
                             
                     else                                -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
                         currentState <= Sfetch;   
@@ -366,8 +367,8 @@ begin
                         ext_displacement_JSRD                       when decodedInstruction = JSRD      else 
                         regA;
                         
-    opB(15 downto 0) <= regSP               when decodedInstruction = RTS or decodedInstruction = POP or decodedInstruction = POPF else
-                        regPC               when decodedInstruction = JUMP_R or decodedInstruction = JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  else
+    opB(15 downto 0) <= regSP               when decodedInstruction = RTS or decodedInstruction = RTI or decodedInstruction = POP or decodedInstruction = POPF else
+                        regPC               when decodedInstruction = JUMP_R or decodedInstruction = JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  or decodedInstruction = JMP_INTR else
                         (x"000" & regFlags) when decodedInstruction = PUSHF else
                         regB;
     
@@ -405,14 +406,13 @@ begin
     
     -- Memory access interface
     ce <= '1' when rst = '0' and (currentState = Sfetch or currentState = Srts or currentState = Srti or currentState = Spop or currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst or currentState = Spushf or currentState = Spopf or currentState = Sintr) else '0';
-    rw <= '1' when currentState = Sfetch or currentState = Srts or currentState = Srti or currentState = Spop or currentState = Sld or currentState = Spopf or currentState = Sintr else '0';
+    rw <= '1' when currentState = Sfetch or currentState = Srts or currentState = Srti or currentState = Spop or currentState = Sld or currentState = Spopf  else '0';
 	
 	address <= 	regSP   when currentState = Spush or currentState = Ssbrt or currentState = Spushf  or currentState = Sintr  else
-				regPC   when currentState = Sfetch                                                    else
+				regPC   when currentState = Sfetch  else
 				regALU;
     
     data_out <= registerFile(RS2) when decodedInstruction = ST else
-                regPC             when currentState = Sintr    else
                 opB(15 downto 0);
 	
 end behavioral;
