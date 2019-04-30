@@ -78,24 +78,48 @@ interruption_handler:
     pushf
     
     xor r0, r0, r0
+	xor r10, r10, r10
+	
+	ldh r7, #debounce_flag
+	ldl r7, #debounce_flag
+	ld r8, r7, r0						; r8 <- debounce_flag
+	
+	addi r10, #10
+	addi r8, #0							;
+	jmpzd #debounce_zero_ih				;
+	jmpd #debounce_not_zero_ih			; if debounce_flag == 0:
+	debounce_zero_ih:
+	addi r8, #16
+	st r8, r7, r0						; 	debounce_flag <- debounce_flag + 16
+	
     ldh r5, #80h
     ldl r5, #02h
-    ld r6, r5, r0           ; r6 <- regData
+    ld r6, r5, r0           			; 	r6 <- regData
     
     ldh r5, #00h
-    ldl r5, #08h            ; r5 <- increment interruption mask
-    and r7, r6, r5          ;
-    jmpzd #isr_increment_false
-    jsrd #increment_handler
-    isr_increment_false:
+    ldl r5, #08h            			; 	r5 <- increment interruption mask
+	addi r10, #10
+    and r7, r6, r5         				;
+    jmpzd #isr_increment_false			;	if increment button is pressed:
+    jsrd #increment_handler				;   	call increment handler
+	addi r10, #25
+    isr_increment_false:				;
     
     ldh r5, #00h
-    ldl r5, #04h            ; r5 <- decrement interruption mask
-    and r7, r6, r5
-    jmpzd #isr_decrement_false
-    jsrd #decrement_handler
+    ldl r5, #04h            			; 	r5 <- decrement interruption mask
+	addi r10, #6
+    and r7, r6, r5						;
+    jmpzd #isr_decrement_false			;	if decrement button is pressed:
+    jsrd #decrement_handler				; 		call decrement handler
+	addi r10, #25
     isr_decrement_false:
-    
+	debounce_not_zero_ih:
+	
+	xor r0, r0, r0
+	addi r10, #12
+	add r1, r10, r0
+	jsrd #srt_check_time				; check_time(r1)
+	
     popf
     pop r7
     pop r6
@@ -107,25 +131,50 @@ interruption_handler:
 
 ; Specific interruption handlers
 increment_handler:
-    
-    rts
+
+	ldh r1, #00h						;
+	ldl r1, #02h						;
+	jsrd #srt_decimal_increment			; decimal_increment(counter)
+
+	rts
 
 decrement_handler:
-    
-    rts
-; Interruption handling end   
+    ldh r1, #00h						;
+	ldl r1, #02h						;
+	jsrd #srt_decimal_decrement			; decimal_decrement(counter)
+
+	rts
+; interruption handling end   
     
 main:
-    
-    ldh r1, #00h
-    ldl r1, #07h
-    jsrd #srt_refresh_timers    ; srt_refresh_timers(7)
+
+	xor r1, r1, r1
+    jsrd #srt_check_time
+	
+    jmpd #main
+
+	
+; Subroutines
+srt_check_time:
+; Objective: to check if the ms and sec timers have been zeroed
+; Argument: r1 as number of instructions used
+; Return: NULL
+	push r1
+	
+	xor r0, r0, r0
+	addi r1, #8
+    jsrd #srt_refresh_timers    ; srt_refresh_timers(r1)
     addi r3, #0
     jmpzd #r3_zero_main         ; if r3 == 0 (one_ms_timer <= 0)
     jmpd #r3_not_zero_main
     r3_zero_main:
+	ldh r7, #debounce_flag
+	ldl r7, #debounce_flag
+	ld r8, r7, r0				; 	r8 <- debounce_flag
+	subi r8, #1
+	st r8, r7, r0
     jsrd #srt_write_display     ;   write_display()
-    
+	
     addi r4, #0
     jmpzd #r4_zero_main         ;   if r4 == 0 (one_s_timer <= 0)
     jmpd #r4_not_zero_main
@@ -135,10 +184,10 @@ main:
     
     r4_not_zero_main:           ;   else   
     r3_not_zero_main:           ; else
-    
-    jmpd #main
+	
+	pop r1
+	rts
 
-; Subroutines
 srt_refresh_timers:
 ; Objective: to decrement one_ms and one_s timers according to processor usage
 ; Argument: r1 as number of instructions used
