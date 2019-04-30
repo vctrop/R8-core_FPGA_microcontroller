@@ -117,16 +117,29 @@ decrement_handler:
     
 main:
     
-    ; call srt_refresh_timers
-    ; if r3 == 0
-    ;   refresh displays
-    ;   if r1 == 0
-    ;       update timer
-    
     ldh r1, #00h
     ldl r1, #0Ah
     
     jsrd #srt_refresh_timers
+    addi r3, #0
+    jmpzd #r3_zero_main      ; if r3 == 0 (one_ms_timer <= 0)
+    jmpd #r3_not_zero_main
+    r3_zero_main:
+    ; refresh displays
+    addi r4, #0
+    jmpzd #r4_zero_main      ;  if r4 == 0 (
+    jmpd #r4_not_zero_main
+    r4_zero_main:
+    
+    r4_not_zero_main:
+    r3_not_zero_main:        ; else
+    
+    ; if r3 == 0
+    ;   refresh displays
+    ;   if r4 == 0
+    ;       update timer
+    
+    
     
     jmpd #main
 
@@ -136,6 +149,9 @@ srt_refresh_timers:
     ; Argument: r1 as number of instructions used
     ; Return: r3 as one_ms_timer state and r4 as one_s_timer state (1 if still positive)
     push r0
+    ;push r5
+    ;push r6
+    ;push r7
     
     xor r0, r0, r0
     xor r3, r3, r3          ; ret0 <- 0
@@ -151,28 +167,32 @@ srt_refresh_timers:
     jmpzd #cyc_zero_or_neg          ;
     jmpnd #cyc_zero_or_neg          ; if one_ms_timer is positive:
     addi r3, #1                     ;   ret0 <- 1
+    addi r4, #1                     ;   ret1 <- 1
     st r7, r6, r0                   ;   mem[one_ms_timer] <- mem[one_ms_timer] - arg*2
-    jmpd #condition_end     
+    jmpd #condition_end_rt     
     cyc_zero_or_neg:                ; else
     ldh r7, #61h                    ;
     ldl r7, #A8h                    ;
     st r7, r6, r0                   ;   reset one_ms_timer
         
-    ldh r6, #one_s_timer           ;
-    ldl r6, #one_s_timer           ;
+    ldh r6, #one_s_timer            ;
+    ldl r6, #one_s_timer            ;
     ld r7, r6, r0                   ; 
     subi r7, #1                     ;   r7 <- mem[one_s_timer] - 1
     jmpzd #mili_zero_or_neg         ;       
     jmpnd #mili_zero_or_neg         ;   if one_s_timer is positive:
     addi r4, #1                     ;       ret1 <- 1
     st r7, r6, r0                   ;       mem[one_s_timer] <- mem[one_s_timer] - 1
-    jmpd #condition_end     
+    jmpd #condition_end_rt     
     mili_zero_or_neg:               ;   else
     ldh r7, #03h                    ;
     ldl r7, #E8h                    ;
     st r7, r6, r0                   ;       reset one_s_timer
-    condition_end:
+    condition_end_rt:
     
+    ;pop r7
+    ;pop r6
+    ;pop r5
     pop r0
     rts
 
