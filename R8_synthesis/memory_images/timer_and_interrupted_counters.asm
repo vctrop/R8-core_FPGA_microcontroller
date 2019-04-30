@@ -86,14 +86,14 @@ interruption_handler:
     ldl r5, #08h            ; r5 <- increment interruption mask
     and r7, r6, r5          ;
     jmpzd #isr_increment_false
-    jsr #increment_handler
+    jsrd #increment_handler
     isr_increment_false:
     
     ldh r5, #00h
     ldl r5, #04h            ; r5 <- decrement interruption mask
     and r7, r6, r5
     jmpzd #isr_decrement_false
-    jsr #decrement_handler
+    jsrd #decrement_handler
     isr_decrement_false:
     
     popf
@@ -105,17 +105,16 @@ interruption_handler:
 ;end interruption_handler
 
 
+; Specific interruption handlers
 increment_handler:
     
+    rts
 
 decrement_handler:
     
-
-update_timer_counters:
-
-
-write_display:
-
+    rts
+; Interruption handling end   
+    
 main:
     
     ; call srt_refresh_timers
@@ -177,6 +176,7 @@ srt_refresh_timers:
     pop r0
     rts
 
+    
 srt_write_display:   
     rts
     
