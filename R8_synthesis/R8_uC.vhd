@@ -63,7 +63,7 @@ begin
             PORT_DATA_ADDR      => "10",
             PORT_CONFIG_ADDR    => "01",
             PORT_ENABLE_ADDR    => "00",
-	    PORT_IRQENABLE_ADDR => "11" 
+            PORT_IRQ_ENABLE_ADDR => "11" 
         )
         port map(
             clk         => clk,
@@ -74,7 +74,7 @@ begin
             address     => addressR8(1 downto 0),
             wr          => rw_n,                -- 1: write, 0: read
             ce          => ce_portA,
-            irq		=> irq,
+            irq		    => irq,
             -- External interface
             port_io     => port_io
             

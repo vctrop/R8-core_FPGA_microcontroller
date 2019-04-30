@@ -9,7 +9,7 @@ entity BidirectionalPort  is
         PORT_DATA_ADDR         : std_logic_vector(1 downto 0);     -- NÃO ALTERAR!
         PORT_CONFIG_ADDR       : std_logic_vector(1 downto 0);     -- NÃO ALTERAR! 
         PORT_ENABLE_ADDR       : std_logic_vector(1 downto 0);      -- NÃO ALTERAR!
-        PORT_IRQENABLE_ADDR    : std_logic_vector(1 downto 0)      -- NÃO ALTERAR!
+        PORT_IRQ_ENABLE_ADDR    : std_logic_vector(1 downto 0)      -- NÃO ALTERAR!
     );
     port (  
         clk         : in std_logic;
@@ -48,7 +48,7 @@ begin
                 PortEnable <= data;
             elsif address = PORT_CONFIG_ADDR and ce = '1' and wr = '1' then
                 PortConfig <= data;
-            elsif address = PORT_IRQENABLE_ADDR and ce = '1' and wr = '1' then
+            elsif address = PORT_IRQ_ENABLE_ADDR and ce = '1' and wr = '1' then
                 PortIrqEnable <= data;
             end if;
             --We set each bit in PortData individually
@@ -78,7 +78,7 @@ begin
             
     mux_read <= PortEnable      when address = PORT_ENABLE_ADDR else 
                 PortConfig      when address = PORT_CONFIG_ADDR else
-                PortIrqEnable   when address = PORT_IRQENABLE_ADDR else
+                PortIrqEnable   when address = PORT_IRQ_ENABLE_ADDR else
                 PortData;
                 
     --set interrupt request when input signal is high
