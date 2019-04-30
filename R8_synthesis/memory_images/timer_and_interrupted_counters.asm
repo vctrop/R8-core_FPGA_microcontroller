@@ -29,18 +29,18 @@ boot:
 	ldl r8, #debounce_flag
 	st  r0, r8, r0				;debounce_flag <- 0
 	
-	ldh r8, #four_ms_counter
-	ldl r8, #four_ms_counter
-	ldh r6, #C5h
-	ldl r6, #30h
-	st  r6, r8, r0			;four_ms_counter <- 50e3
+	ldh r8, #one_ms_timer
+	ldl r8, #one_ms_timer
+	ldh r6, #61h
+	ldl r6, #A8h
+	st  r6, r8, r0			    ; one_ms_timer <- 25e3
 	
 	
-	ldh r8, #four_ms_counter
-	ldl r8, #four_ms_counter
-	ldh r6, #00h
-	ldl r6, #FAh
-	st  r6, r8, r0			;one_s_counter <- 250
+	ldh r8, #one_s_timer
+	ldl r8, #one_s_timer
+	ldh r6, #03h
+	ldl r6, #E8h
+	st  r6, r8, r0			;one_s_timer <- 1000
 	
     ldh r8, #80h            ;
     ldl r8, #01h            ; r8 <= PortA regConfig address
@@ -118,7 +118,68 @@ write_display:
 
 main:
     
+    ; call srt_refresh_timers
+    ; if r3 == 0
+    ;   refresh displays
+    ;   if r1 == 0
+    ;       update timer
+    
+    ldh r1, #00h
+    ldl r1, #0Ah
+    
+    jsrd #srt_refresh_timers
+    
     jmpd #main
+
+; Subroutines
+srt_refresh_timers:
+    ; Objective: to decrement one_ms and one_s timers according to processor usage
+    ; Argument: r1 as number of instructions used
+    ; Return: r3 as one_ms_timer state and r4 as one_s_timer state (1 if still positive)
+    push r0
+    
+    xor r0, r0, r0
+    xor r3, r3, r3          ; ret0 <- 0
+    xor r4, r4, r4          ; ret1 <- 0
+
+    sl0 r5, r1                      ; r5 <- r1*2 (instructions to pseudocycles conversion)
+                                    ; a pseudocycle is equivalent to 2 cycles                      
+    ldh r6, #one_ms_timer    ;
+    ldl r6, #one_ms_timer    ;
+    ld r7, r6, r0                   ; r7 <- mem[one_ms_timer]
+    subi r7, #28                    ; compensate for the 14 instructions of the subroutine
+    sub r7, r7, r5                  ; r7 <- mem[one_ms_timer] - arg*2
+    jmpzd #cyc_zero_or_neg          ;
+    jmpnd #cyc_zero_or_neg          ; if one_ms_timer is positive:
+    addi r3, #1                     ;   ret0 <- 1
+    st r7, r6, r0                   ;   mem[one_ms_timer] <- mem[one_ms_timer] - arg*2
+    jmpd #condition_end     
+    cyc_zero_or_neg:                ; else
+    ldh r7, #61h                    ;
+    ldl r7, #A8h                    ;
+    st r7, r6, r0                   ;   reset one_ms_timer
+        
+    ldh r6, #one_s_timer           ;
+    ldl r6, #one_s_timer           ;
+    ld r7, r6, r0                   ; 
+    subi r7, #1                     ;   r7 <- mem[one_s_timer] - 1
+    jmpzd #mili_zero_or_neg         ;       
+    jmpnd #mili_zero_or_neg         ;   if one_s_timer is positive:
+    addi r4, #1                     ;       ret1 <- 1
+    st r7, r6, r0                   ;       mem[one_s_timer] <- mem[one_s_timer] - 1
+    jmpd #condition_end     
+    mili_zero_or_neg:               ;   else
+    ldh r7, #03h                    ;
+    ldl r7, #E8h                    ;
+    st r7, r6, r0                   ;       reset one_s_timer
+    condition_end:
+    
+    pop r0
+    rts
+
+srt_write_display:   
+    rts
+    
 .endcode
 
 
@@ -128,6 +189,6 @@ main:
 	enable_display_mask: 	db #00E0h, #00D0h, #00B0h, #0070h                       ;display enable active at 0
 	display_index: 			db #0000h												;selects witch display is enabled	
 	debounce_flag:			db #0000h												;
-	four_ms_counter:		db #C530h												;50e3 instructions result in 4ms
-	one_s_counter:			db #00FAh												;250 times of 4 ms counter resets results in a second
+	one_ms_timer:		    db #61A8h												; 25e3 instructions result in 4ms
+	one_s_timer:			db #03E8h												; 1000 times of 1 ms counter resets results in a second
 .enddata
