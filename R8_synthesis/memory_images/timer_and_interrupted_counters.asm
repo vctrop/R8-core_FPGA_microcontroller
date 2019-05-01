@@ -98,8 +98,8 @@ interruption_handler:
 	
 	addi r10, #10
 	addi r8, #0							;
-	jmpzd #debounce_zero_ih				;
-	jmpd #debounce_not_zero_ih			; if debounce_flag == 0:
+	jmpzd #debounce_zero_ih				; if debounce_flag == 0:
+	jmpd #check_time_ih			        ; else, skip button checking
 	debounce_zero_ih:
 	addi r8, #16
 	st r8, r7, r0						; 	debounce_flag <- debounce_flag + 16
@@ -115,18 +115,19 @@ interruption_handler:
     jmpzd #isr_increment_false			;	if increment button is pressed:
     jsrd #increment_handler				;   	call increment handler
 	addi r10, #25
+    jmpd #check_time_ih
     isr_increment_false:				;
     
     ldh r5, #00h
     ldl r5, #04h            			; 	r5 <- decrement interruption mask
 	addi r10, #6
     and r7, r6, r5						;
-    jmpzd #isr_decrement_false			;	if decrement button is pressed:
+    jmpzd #check_time_ih			    ;	if decrement button is pressed:
     jsrd #decrement_handler				; 		call decrement handler
 	addi r10, #25
-    isr_decrement_false:
-	debounce_not_zero_ih:
-	
+    
+
+	check_time_ih:
 	xor r0, r0, r0
 	addi r10, #20
 	add r1, r10, r0
