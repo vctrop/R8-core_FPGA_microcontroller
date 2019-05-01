@@ -36,6 +36,8 @@ begin
     -- Generates the clock signal            
     clk <= not clk after 10 ns;
     
+    port_io(3) <= '0', '1' after 25 us, '0' after 27 us;
+    port_io(2) <= '0';
     -- Generates the reset signal
     rst <='1', '0' after 5 ns;    
     

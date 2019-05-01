@@ -52,7 +52,7 @@ boot:
     ldh r8, #80h            ;
     ldl r8, #03h            ; r8 <= PortA irqEnable address
     ldh r9, #00h            ;
-    ldl r9, #C0h            ; r8 <= PortA irqEnable content
+    ldl r9, #0Ch            ; r8 <= PortA irqEnable content
     st r9, r8, r0           ; Write irqEnable content on its address
 	
 
@@ -72,9 +72,21 @@ boot:
 .org #0040h
 interruption_handler:
     push r0
+    push r1
+    push r2
+    push r3
+    push r4
     push r5
     push r6
     push r7
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
     pushf
     
     xor r0, r0, r0
@@ -116,14 +128,26 @@ interruption_handler:
 	debounce_not_zero_ih:
 	
 	xor r0, r0, r0
-	addi r10, #12
+	addi r10, #20
 	add r1, r10, r0
 	jsrd #srt_check_time				; check_time(r1)
 	
     popf
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
     pop r7
     pop r6
     pop r5
+    pop r4 
+    pop r3 
+    pop r2
+    pop r1
     pop r0
     rti
 ;end interruption_handler
@@ -165,25 +189,28 @@ srt_check_time:
 	addi r1, #8
     jsrd #srt_refresh_timers    ; srt_refresh_timers(r1)
     addi r3, #0
-    jmpzd #r3_zero_main         ; if r3 == 0 (one_ms_timer <= 0)
-    jmpd #r3_not_zero_main
-    r3_zero_main:
+    jmpzd #r3_zero_check_time         ; if r3 == 0 (one_ms_timer <= 0)
+    jmpd #r3_not_zero_check_time
+    r3_zero_check_time:
 	ldh r7, #debounce_flag
 	ldl r7, #debounce_flag
 	ld r8, r7, r0				; 	r8 <- debounce_flag
+    addi r8, #0
+    jmpzd #r8_zero              ; if(debounce_flag != 0) debounce_flag--;
 	subi r8, #1
 	st r8, r7, r0
+    r8_zero:
     jsrd #srt_write_display     ;   write_display()
 	
     addi r4, #0
     jmpzd #r4_zero_main         ;   if r4 == 0 (one_s_timer <= 0)
-    jmpd #r4_not_zero_main
+    jmpd #r4_not_zero_check_time
     r4_zero_main:
     xor r1, r1, r1              ;
     jsrd #srt_decimal_increment ;       decimal_increment(timer)
     
-    r4_not_zero_main:           ;   else   
-    r3_not_zero_main:           ; else
+    r4_not_zero_check_time:           ;   else   
+    r3_not_zero_check_time:           ; else
 	
 	pop r1
 	rts
