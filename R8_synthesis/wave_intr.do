@@ -31,13 +31,13 @@ add wave -noupdate -color {Midnight Blue} -label PortEnable /r8_uc_tb/R8_uC/PORT
 add wave -noupdate -color {Steel Blue} -label PortConfig /r8_uc_tb/R8_uC/PORT_A/PortConfig
 add wave -noupdate -color Blue -label PortIrqEnable /r8_uc_tb/R8_uC/PORT_A/PortIrqEnable
 add wave -noupdate -divider Display_variable
-add wave -noupdate -label {display[0]} /r8_uc_tb/R8_uC/RAM/RAM(307)
-add wave -noupdate -label {display[1]} /r8_uc_tb/R8_uC/RAM/RAM(308)
-add wave -noupdate -label {display[2]} /r8_uc_tb/R8_uC/RAM/RAM(309)
-add wave -noupdate -label {display[3]} /r8_uc_tb/R8_uC/RAM/RAM(310)
-add wave -noupdate -label debounce_flag /r8_uc_tb/R8_uC/RAM/RAM(316)
+add wave -noupdate -label {display[0]} /r8_uc_tb/R8_uC/RAM/RAM(308)
+add wave -noupdate -label {display[1]} /r8_uc_tb/R8_uC/RAM/RAM(309)
+add wave -noupdate -label {display[2]} /r8_uc_tb/R8_uC/RAM/RAM(310)
+add wave -noupdate -label {display[3]} /r8_uc_tb/R8_uC/RAM/RAM(311)
+add wave -noupdate -label debounce_flag /r8_uc_tb/R8_uC/RAM/RAM(317)
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {25210000 ps} 0}
+WaveRestoreCursors {{Cursor 1} {59549810 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
@@ -53,4 +53,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {0 ps} {86600 ps}
+WaveRestoreZoom {58989343 ps} {61277918 ps}
