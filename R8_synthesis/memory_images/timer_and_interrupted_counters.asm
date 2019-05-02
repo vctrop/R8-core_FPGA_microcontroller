@@ -96,13 +96,17 @@ interruption_handler:
 	ldl r7, #debounce_flag
 	ld r8, r7, r0						; r8 <- debounce_flag
 	
-	addi r10, #10
+	addi r10, #23
 	addi r8, #0							;
 	jmpzd #debounce_zero_ih				; if debounce_flag == 0:
-	jmpd #check_time_ih			        ; else, skip button checking
+	jmpd #check_time_ih			        ; (else, skip button checking)
 	debounce_zero_ih:
-	addi r8, #16
-	st r8, r7, r0						; 	debounce_flag <- debounce_flag + 16
+	;ldh r5, #01h						;
+	;ldl r5, #2Ch						;
+	;add r8, r5, r0						;
+	xor r8, r8, r8
+	addi r8, #220
+	st r8, r7, r0						; 	debounce_flag <- debounce_flag + 300	 (ms)
 	
     ldh r5, #80h
     ldl r5, #02h
@@ -110,7 +114,7 @@ interruption_handler:
     
     ldh r5, #00h
     ldl r5, #08h            			; 	r5 <- increment interruption mask
-	addi r10, #10
+	addi r10, #13
     and r7, r6, r5         				;
     jmpzd #isr_increment_false			;	if increment button is pressed:
     jsrd #increment_handler				;   	call increment handler
@@ -129,7 +133,7 @@ interruption_handler:
 
 	check_time_ih:
 	xor r0, r0, r0
-	addi r10, #20
+	addi r10, #21
 	add r1, r10, r0
 	jsrd #srt_check_time				; check_time(r1)
 	
@@ -188,30 +192,30 @@ srt_check_time:
 	
 	xor r0, r0, r0
 	addi r1, #8
-    jsrd #srt_refresh_timers    ; srt_refresh_timers(r1)
+    jsrd #srt_refresh_timers    	; srt_refresh_timers(r1)
     addi r3, #0
-    jmpzd #r3_zero_check_time         ; if r3 == 0 (one_ms_timer <= 0)
+    jmpzd #r3_zero_check_time   	; if r3 == 0 (one_ms_timer <= 0)
     jmpd #r3_not_zero_check_time
     r3_zero_check_time:
 	ldh r7, #debounce_flag
 	ldl r7, #debounce_flag
-	ld r8, r7, r0				; 	r8 <- debounce_flag
+	ld r8, r7, r0					; 	r8 <- debounce_flag
     addi r8, #0
-    jmpzd #r8_zero              ; if(debounce_flag != 0) debounce_flag--;
-	subi r8, #1
-	st r8, r7, r0
+    jmpzd #r8_zero              	; 	if(debounce_flag != 0)
+	subi r8, #1						;
+	st r8, r7, r0					;		debounce_flag--	
     r8_zero:
-    jsrd #srt_write_display     ;   write_display()
+    jsrd #srt_write_display     	; 	write_display()
 	
     addi r4, #0
-    jmpzd #r4_zero_main         ;   if r4 == 0 (one_s_timer <= 0)
+    jmpzd #r4_zero_main         	;   if r4 == 0 (one_s_timer <= 0)
     jmpd #r4_not_zero_check_time
     r4_zero_main:
-    xor r1, r1, r1              ;
-    jsrd #srt_decimal_increment ;       decimal_increment(timer)
+    xor r1, r1, r1              	;
+    jsrd #srt_decimal_increment 	;       decimal_increment(timer)
     
-    r4_not_zero_check_time:           ;   else   
-    r3_not_zero_check_time:           ; else
+    r4_not_zero_check_time:         ;   else   
+    r3_not_zero_check_time:         ; else
 	
 	pop r1
 	rts

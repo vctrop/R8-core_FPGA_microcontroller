@@ -3,10 +3,10 @@ net "board_clock" loc = V10;
 net "board_rst" loc = B8;
 
 //Rightmost display is 0
-net "port_io[4]" loc = P17;
-net "port_io[5]" loc = P18;
-net "port_io[6]" loc = N15;
-net "port_io[7]" loc = N16;
+net "port_io[7]" loc = P17;
+net "port_io[6]" loc = P18;
+net "port_io[5]" loc = N15;
+net "port_io[4]" loc = N16;
 
 //PINS are ABCDEFG.
 net "port_io[8]" loc = M13;
