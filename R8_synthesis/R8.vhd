@@ -59,7 +59,7 @@ architecture behavioral of R8 is
         SL0, SL1, SR0, SR1,
         LDL, LDH, LD, ST, LDSP, POP, PUSH, POPF, PUSHF,
         JUMP_R, JUMP_A, JUMP_D, JSRR, JSR, JSRD,
-        NOP, HALT,  RTS, RTI, JMP_INTR
+        NOP, HALT,  RTS, RTI, JMP_INTR, DIV, MUL, MFH, MFL
     );
     type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spop, Spush, Spushf, Spopf, Sisr, Srti, Sintr);
     type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
@@ -145,18 +145,21 @@ begin
                             
                             PUSH    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"A" else 
                             POP     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"9" else
-                            POPF    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"C" else
-                            PUSHF   when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"D" else
+                            POPF    when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"1B" else
+                            PUSHF   when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"2B" else
                             
                             JSR     when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"B" else
                             JSRR    when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"A" else
                             JSRD    when regIR(15 downto 12) = x"F" else
                             RTS     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"8" else
-                            RTI     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"B" else
+                            RTI     when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"0B" else
+                            
+                            MFH     when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"3B" else
+                            MFL     when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"4B" else
 
                             -- -- Jump instructions (18). 
                             -- -- Here the status flags are tested to jump or not
-                            JUMP_R  when regIR(15 downto 12) = x"C" and (
+                            JUMP_R  when regIR(15 downto 8) = x"C0" and (
                                      regIR(3 downto 0) = x"0" or                           -- JMPR
                                     (regIR(3 downto 0) = x"1" and negativeFlag = '1') or   -- JMPNR
                                     (regIR(3 downto 0) = x"2" and zeroFlag = '1') or       -- JMPZR
@@ -164,7 +167,7 @@ begin
                                     (regIR(3 downto 0) = x"4" and overflowFlag = '1')      -- JMPVR
                                     ) else 
 
-                            JUMP_A  when regIR(15 downto 12) = x"C" and (
+                            JUMP_A  when regIR(15 downto 8) = x"C0" and (
                                      regIR(3 downto 0) = x"5" or                           -- JMP
                                     (regIR(3 downto 0) = x"6" and negativeFlag = '1') or   -- JMPN
                                     (regIR(3 downto 0) = x"7" and zeroFlag = '1') or       -- JMPZ
@@ -180,8 +183,11 @@ begin
                                             (regIR(11 downto 10) = "11" and overflowFlag = '1')    -- JMPVD
                                         )   
                                     )  else 
-
-                            JMP_INTR when regIR = x"B00E" else                                      --reserved for interruption handler jump
+                                    
+                            MUL     when regIR(15 downto 8) = x"C1" else
+                            DIV     when regIR(15 downto 8) = x"C2" else
+                            
+                            JMP_INTR when regIR = x"B0FB" else                                      --reserved for interruption handler jump
                             NOP;
 
     -- The target register is not source
@@ -213,7 +219,7 @@ begin
                     if intr ='1' and InterruptionStatus = '0' then
                         InterruptionStatus <= '1';
                         currentState <= Sintr; 
-                        regIR <= x"B00E";                                       --JMP_INTR microinstruction   
+                        regIR <= x"B0FB";                                       --JMP_INTR microinstruction   
                     else    
                         regIR <= data_in;                                       -- regIR <= MEM[ADDRESS]
                         regPC <= std_logic_vector(unsigned(regPC)+1);           -- PC++
