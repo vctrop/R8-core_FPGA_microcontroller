@@ -11,26 +11,26 @@ boot:
 	
     ldh r8, #80h            ;
     ldl r8, #01h            ; r8 <= PortA regConfig address
-    ldh r9, #00h            ;
-    ldl r9, #0Ch            ; r9 <= PortA regConfig content
+    ldh r9, #38h            ;
+    ldl r9, #FFh            ; r9 <= PortA regConfig content
     st r9, r8, r0           ; Write regConfig content on its address
     
     
     ldh r8, #80h            ;
     ldl r8, #03h            ; r8 <= PortA irqEnable address
-    ldh r9, #00h            ;
-    ldl r9, #0Ch            ; r8 <= PortA irqEnable content
+    ldh r9, #20h            ;only key_exg interrupts the processor
+    ldl r9, #00h            ; r8 <= PortA irqEnable content
     st r9, r8, r0           ; Write irqEnable content on its address
 	
 
     ldh r8, #80h            ;
     ldl r8, #00h            ; r8 <= PortA regEnable address
-    ldh r9, #FFh            ;
-    ldl r9, #FCh            ; r9 <= PortA regEnable content
+    ldh r9, #F8h            ;
+    ldl r9, #FFh            ; r9 <= PortA regEnable content
     st r9, r8, r0           ; Write regEnable content on its address
     
     jmpd #BubbleSort
-
+;end boot
 
 .org #0040h
 interruption_handler:
@@ -73,6 +73,57 @@ interruption_handler:
     rti
 ;end interruption_handler
    
+   
+handler_key_exchange:
+; Objective: reads cryptomessage magic number, calculates r8's magicnumber and sends it back
+; Argument: NULL
+; Return: NULL
+
+;end
+
+read_crypto:
+; Objective: reads bus from data_out of cryptomessage 
+; Argument: NULL
+; Return: r3 <= data_out of cryptomessage
+	xor r0, r0, r0
+    ldh r6, #80h            ;
+    ldl r6, #01h            ; r6 <= PortA regConfig address
+	ldh r5, #38h
+	ldl r5, #FFh
+	st r5, r6, r0			; portData receives data from cryptomessage
+	
+	ldh r6, #80h            ;
+    ldl r6, #02h            ; r6 <= PortA Data address
+	ldh r5, #80h
+	ldl r5, #00h
+	st r5, r6, r0			;activates tristate
+	
+	ld r3, r6, r0	 		; r3 <= portData
+	rts
+;end read_crypto
+
+write_crypto:
+; Objective: writes to data_in bus of cryptomessage 
+; Argument: r1 <= data to be written
+; Return: NULL
+	xor r0, r0, r0
+    ldh r6, #80h            ;
+    ldl r6, #01h            ; r6 <= PortA regConfig address
+	ldh r5, #38h
+	ldl r5, #00h
+	st r5, r6, r0			; portData receives data from cryptomessage
+	
+	ldh r6, #80h            ;
+    ldl r6, #02h            ; r6 <= PortA Data address
+	ldh r5, #00h
+	ldl r5, #00h
+	st r5, r6, r0			; portData sends data to cryptomessage
+	
+	st r1, r6, r0	 		; data_in <= r1
+	rts
+;end write_crypto
+
+
 BubbleSort:
    
     ; Initialization code
@@ -138,5 +189,5 @@ end:
 
     array:     db #50h, #49h, #48h, #47h, #46h, #45h, #44h, #43h, #42h, #41h,#40h, #39h, #38h, #37h, #36h, #35h, #34h, #33h, #32h, #31h, #30h, #29h, #28h, #27h, #26h, #25h, #24h, #23h, #22h, #21h, #20h, #19h, #18h, #17h, #16h, #15h, #14h, #13h, #12h, #11h, #10h, #9h, #8h, #7h, #6h, #5h, #4h, #3h, #2h, #1h
     size:      db #50    ; 'array' size  
-
+	msg: 	   db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 .enddata
