@@ -228,19 +228,12 @@ begin
                         InterruptionStatus <= '1';
                         currentState <= Sintr; 
                         regIR <= x"B0FB";                                       --JMP_INTR microinstruction   
-                    else    
-                        if data_in(15 downto 12) = x"B" and data_in(7 downto 0) = x"3B"     then        -- MFH
-                            currentState <= Smfh;
-                        elsif data_in(15 downto 12) = x"B" and data_in(7 downto 0) = x"4B"  then        -- MFL
-                            currentState <= Smfl;
-                        else
-                            currentState <= Sreg;
-                        end if;
-                        
-                        regIR <= data_in;                                       -- regIR <= MEM[ADDRESS]
+                    else
+						regIR <= data_in;                                       -- regIR <= MEM[ADDRESS]
                         regPC <= std_logic_vector(unsigned(regPC)+1);           -- PC++
+						currentState <= Sreg;
+                        end if;
                     end if;
-                    
 
                 when Sreg =>
                     regA <= registerFile(RS1);
@@ -252,6 +245,10 @@ begin
                         currentState <= Smul;
                     elsif decodedInstruction = DIV then
                         currentState <= Sdiv;
+					elsif decodedInstruction = MFH then
+						currentState <= Smfh;
+					elsif decodedInstruction = MFL then
+						currentState <= Smfl;
                     else
                        currentState <= Salu;
                     end if;
