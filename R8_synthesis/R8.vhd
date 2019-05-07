@@ -232,7 +232,6 @@ begin
 						regIR <= data_in;                                       -- regIR <= MEM[ADDRESS]
                         regPC <= std_logic_vector(unsigned(regPC)+1);           -- PC++
 						currentState <= Sreg;
-                        end if;
                     end if;
 
                 when Sreg =>
