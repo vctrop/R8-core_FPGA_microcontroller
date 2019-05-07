@@ -61,7 +61,7 @@ architecture behavioral of R8 is
         JUMP_R, JUMP_A, JUMP_D, JSRR, JSR, JSRD,
         NOP, HALT,  RTS, RTI, JMP_INTR, DIV, MUL, MFH, MFL
     );
-    type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spop, Spush, Spushf, Spopf, Sisr, Srti, Sintr);
+    type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spop, Spush, Spushf, Spopf, Sisr, Srti, Sintr, Smfh, Smfl, Smul, Sdiv);
     type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
     
     -- instruction type signal to facilitate boolean operations
@@ -80,6 +80,12 @@ architecture behavioral of R8 is
     signal regIR  : std_logic_vector(15 downto 0);
     signal regA   : std_logic_vector(15 downto 0);
     signal regB   : std_logic_vector(15 downto 0);
+    
+    -- Division and multiplication registers
+    signal regHigh  : std_logic_vector(15 downto 0);
+    signal regLow   : std_logic_vector(15 downto 0);
+    
+    signal mulResult   : std_logic_vector(31 downto 0);
     
     -- Register file adresses 
     signal RS1   :   integer; -- source1 register address
@@ -202,11 +208,13 @@ begin
             currentState <= Sidle;
             registerFile    <= (others => (others=>'0'));	
             regPC           <= (others => '0');
-            regSP           <= x"7FFF";                     --conventional stack start adress
+            regSP           <= x"7FFF";                     -- conventional stack start adress
             regALU          <= (others => '0');
             regIR           <= (others => '0');
             regA            <= (others => '0');
             regB            <= (others => '0');
+            regHigh         <= (others => '0');
+            regLow          <= (others => '0');
             regFlags        <= (others => '0');
             InterruptionStatus <= '0';
             
@@ -221,9 +229,16 @@ begin
                         currentState <= Sintr; 
                         regIR <= x"B0FB";                                       --JMP_INTR microinstruction   
                     else    
+                        if data_in(15 downto 12) = x"B" and data_in(7 downto 0) = x"3B"     then        -- MFH
+                            currentState <= Smfh;
+                        elsif data_in(15 downto 12) = x"B" and data_in(7 downto 0) = x"4B"  then        -- MFL
+                            currentState <= Smfl;
+                        else
+                            currentState <= Sreg;
+                        end if;
+                        
                         regIR <= data_in;                                       -- regIR <= MEM[ADDRESS]
                         regPC <= std_logic_vector(unsigned(regPC)+1);           -- PC++
-                        currentState <= Sreg;
                     end if;
                     
 
@@ -233,6 +248,10 @@ begin
                     
                     if decodedInstruction = HALT then
                         currentState <= Shalt;
+                    elsif decodedInstruction = MUL then
+                        currentState <= Smul;
+                    elsif decodedInstruction = DIV then
+                        currentState <= Sdiv;
                     else
                        currentState <= Salu;
                     end if;
@@ -348,6 +367,26 @@ begin
                     regPC <= INTERRUPT_HANDLER_ADDR;
                     currentState <= Sfetch;
 
+                when Smfh =>
+                    registerFile(RGT) <= regHigh;
+                    currentState <= Sfetch;
+                
+                when Smfl =>
+                    registerFile(RGT) <= regLow;
+                    currentState <= Sfetch;
+                    
+                when Smul =>
+                    regHigh <= mulResult(31 downto 16);
+                    regLow  <= mulResult(15 downto 0);
+                    currentState <= Sfetch;
+                    
+                when Sdiv =>
+                    if regB /= x"0000" then                            
+                        regHigh <= std_logic_vector(signed(regA) mod signed(regB));
+                        regLow  <= std_logic_vector(signed(regA)  /  signed(regB));
+                    end if;
+                    currentState <= Sfetch;
+                    
                 when others  =>
                     currentState <= Shalt;              --HALT loops forever
                 
@@ -377,6 +416,9 @@ begin
     
     negativeA <= '0' & std_logic_vector(signed(not opA(15 downto 0)) + 1);
     negativeB <= '0' & std_logic_vector(signed(not opB(15 downto 0)) + 1);
+    
+    mulResult <=    std_logic_vector(signed(regA) *  signed(regB)) when decodedInstruction = MUL else
+                    x"00000000";
     
     ALUout <=   opA and opB                                                 when decodedInstruction = AAND  else  
                 opA or  opB                                                 when decodedInstruction = OOR   else   
