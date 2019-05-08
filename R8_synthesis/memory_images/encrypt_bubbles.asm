@@ -97,13 +97,16 @@ handler_key_exchange:
     jsrd #write_crypto      
     
     pooling:
-        
-    
+        ;veficiar se é o fim da msg
+		;esperar data_av alto (isso é um pouco complexo)
+		; ler
+		; decriptografar e escrever na memória
+    end_of_message:
     rts
 ;end handler_key_exchange
 
 read_crypto:
-; Objective: reads bus from data_out of cryptomessage 
+; Objective: reads data_in bus from cryptomessage and sets ack to '1' and then deactivates ack
 ; Argument: NULL
 ; Return: r3 <= data_out of cryptomessage which is x"00" & portData(7 downto 0)
 	xor r0, r0, r0          ; 
@@ -129,7 +132,7 @@ read_crypto:
 ;end read_crypto
 
 write_crypto:
-; Objective: writes to data_in bus of cryptomessage and sets ack to '1'
+; Objective: writes to data_in bus of cryptomessage and sets ack to '1' and then deactivates ack
 ; Argument: r1 <= data to be written
 ; Return: NULL
 	xor r0, r0, r0
@@ -151,13 +154,25 @@ write_crypto:
 ;end write_crypto
 
 calc_magic_number:
-; Objective:calculates R8's magic number
+; Objective:calculates R8's magic number = a exp x % q
 ; Argument: NULL
 ; Return: r3 <= magic_number
+	;decrementar random_x (e verificar x < q e x > 0 ) 
+	;calcular exp_mod
 
 ;end calc_magic_number:
 
+exp_mod:
+; Objective: calculates f = a exp b % q, using q = 251 and a = 6
+; Argument: r1 <= b 
+; Return: r3 <= f
+	
+;end exp_mod
 
+decrypt_and_store:
+; Objective: decrypts data and stores in the apropriate memory location
+; Argument: r1 <= data encrypted 
+; Return: NULL
 BubbleSort:
    
     ; Initialization code
@@ -221,7 +236,10 @@ end:
 ; Data area (variables)
 .data
 
-    array:     db #50h, #49h, #48h, #47h, #46h, #45h, #44h, #43h, #42h, #41h,#40h, #39h, #38h, #37h, #36h, #35h, #34h, #33h, #32h, #31h, #30h, #29h, #28h, #27h, #26h, #25h, #24h, #23h, #22h, #21h, #20h, #19h, #18h, #17h, #16h, #15h, #14h, #13h, #12h, #11h, #10h, #9h, #8h, #7h, #6h, #5h, #4h, #3h, #2h, #1h
-    size:      db #50    ; 'array' size  
-	msg: 	   db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
+    array:     		db #50h, #49h, #48h, #47h, #46h, #45h, #44h, #43h, #42h, #41h,#40h, #39h, #38h, #37h, #36h, #35h, #34h, #33h, #32h, #31h, #30h, #29h, #28h, #27h, #26h, #25h, #24h, #23h, #22h, #21h, #20h, #19h, #18h, #17h, #16h, #15h, #14h, #13h, #12h, #11h, #10h, #9h, #8h, #7h, #6h, #5h, #4h, #3h, #2h, #1h
+    size:      		db #50    ; 'array' size  
+	random_x:   	db #250 	 ; first random number b to calculate crypto key; is decremented each exchange
+	crypto_key:	 	db #0
+	index:			db #0
+	msg: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 .enddata
