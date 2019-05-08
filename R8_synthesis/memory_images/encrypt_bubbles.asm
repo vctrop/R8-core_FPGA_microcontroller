@@ -18,7 +18,7 @@ boot:
     
     ldh r8, #80h            ;
     ldl r8, #03h            ; r8 <= PortA irqEnable address
-    ldh r9, #20h            ;only key_exg interrupts the processor
+    ldh r9, #20h            ; only key_exg interrupts the processor
     ldl r9, #00h            ; r8 <= PortA irqEnable content
     st r9, r8, r0           ; Write irqEnable content on its address
 	
@@ -52,7 +52,18 @@ interruption_handler:
     push r15
     pushf
     
-	
+    xor r0, r0, r0
+    ldh r6, #80h            ;
+    ldl r6, #02h            ; r6 <= PortA Data address
+	ld r5, r6, r0
+    
+    ldh r7, #20h            ; mask to check if the interruption happens due to key_exg
+    ldl r7, #00h            ; 
+    and r8, r7, r5
+    jmpzd #end_interruption_handler
+    jsrd #handler_key_exchange
+    
+    end_interruption_handler:
     popf
     pop r15
     pop r14
@@ -75,17 +86,27 @@ interruption_handler:
    
    
 handler_key_exchange:
-; Objective: reads cryptomessage magic number, calculates r8's magicnumber and sends it back
+; Objective: handles message exchange between the R8 and the cryptomessage
 ; Argument: NULL
 ; Return: NULL
-
-;end
+    jsrd #read_crypto
+    xor r0, r0, r0
+    add r10, r3, r0         ; r10 contains cryptomessage magic number
+    jsrd #calc_magic_number
+    add r1, r3, r0          ; r1 <= magic_number
+    jsrd #write_crypto      
+    
+    pooling:
+        
+    
+    rts
+;end handler_key_exchange
 
 read_crypto:
 ; Objective: reads bus from data_out of cryptomessage 
 ; Argument: NULL
-; Return: r3 <= data_out of cryptomessage
-	xor r0, r0, r0
+; Return: r3 <= data_out of cryptomessage which is x"00" & portData(7 downto 0)
+	xor r0, r0, r0          ; 
     ldh r6, #80h            ;
     ldl r6, #01h            ; r6 <= PortA regConfig address
 	ldh r5, #38h
@@ -94,16 +115,21 @@ read_crypto:
 	
 	ldh r6, #80h            ;
     ldl r6, #02h            ; r6 <= PortA Data address
-	ldh r5, #80h
+	ldh r5, #C0h
 	ldl r5, #00h
-	st r5, r6, r0			;activates tristate
-	
-	ld r3, r6, r0	 		; r3 <= portData
+	st r5, r6, r0			;activates tristate and ack
+	     
+	ld r7, r6, r0	 		; r3 <= portData
+    ldh r5, #00h
+    ldl r5, #FFh
+    and r3, r7, r5          ; r3 <= x"00" & portData(7 downto 0)
+    
+    st r0, r6, r0			; deactivates ack and tristate
 	rts
 ;end read_crypto
 
 write_crypto:
-; Objective: writes to data_in bus of cryptomessage 
+; Objective: writes to data_in bus of cryptomessage and sets ack to '1'
 ; Argument: r1 <= data to be written
 ; Return: NULL
 	xor r0, r0, r0
@@ -115,13 +141,21 @@ write_crypto:
 	
 	ldh r6, #80h            ;
     ldl r6, #02h            ; r6 <= PortA Data address
-	ldh r5, #00h
-	ldl r5, #00h
-	st r5, r6, r0			; portData sends data to cryptomessage
-	
-	st r1, r6, r0	 		; data_in <= r1
+	ldh r5, #40h            ; r5 contains mask to activate only ack and sets tristate to '0'    
+	ldl r5, #FFh
+    and r7, r1, r5
+    
+	st r7, r6, r0			; portData sends x"40" & r1(7 downto 0) - (sets tristate to '0')
+    st r0, r6, r0			; deactivates ack and tristate
 	rts
 ;end write_crypto
+
+calc_magic_number:
+; Objective:calculates R8's magic number
+; Argument: NULL
+; Return: r3 <= magic_number
+
+;end calc_magic_number:
 
 
 BubbleSort:
