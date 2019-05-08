@@ -154,8 +154,8 @@ begin
                             POPF    when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"1B" else
                             PUSHF   when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"2B" else
                             
-                            JSR     when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"B" else
-                            JSRR    when regIR(15 downto 12) = x"C" and regIR(3 downto 0) = x"A" else
+                            JSR     when regIR(15 downto 8) = x"C0" and regIR(3 downto 0) = x"B" else
+                            JSRR    when regIR(15 downto 8) = x"C0" and regIR(3 downto 0) = x"A" else
                             JSRD    when regIR(15 downto 12) = x"F" else
                             RTS     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"8" else
                             RTI     when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"0B" else
