@@ -93,8 +93,9 @@ handler_key_exchange:
     xor r0, r0, r0
     add r10, r3, r0         ; r10 contains cryptomessage magic number
     jsrd #calc_magic_number
-    add r1, r3, r0          ; r1 <= magic_number
-    jsrd #write_crypto      
+    add r1, r3, r0          ; r1 <- magic_number
+    jsrd #write_crypto
+    jsrd #ack_pulse
     
     pooling:
         ;veficiar se é o fim da msg
@@ -106,52 +107,70 @@ handler_key_exchange:
 ;end handler_key_exchange
 
 read_crypto:
-; Objective: reads data_in bus from cryptomessage and sets ack to '1' and then deactivates ack
+; Objective: reads data_in bus from cryptomessage
 ; Argument: NULL
 ; Return: r3 <= data_out of cryptomessage which is x"00" & portData(7 downto 0)
 	xor r0, r0, r0          ; 
     ldh r6, #80h            ;
-    ldl r6, #01h            ; r6 <= PortA regConfig address
+    ldl r6, #01h            ; r6 <- PortA regConfig address
 	ldh r5, #38h
 	ldl r5, #FFh
-	st r5, r6, r0			; portData receives data from cryptomessage
+	st r5, r6, r0			; Sets regConfig so portData receives data from cryptomessage
 	
 	ldh r6, #80h            ;
-    ldl r6, #02h            ; r6 <= PortA Data address
-	ldh r5, #C0h
+    ldl r6, #02h            ; r6 <- PortA Data address
+	ldh r5, #80h
 	ldl r5, #00h
-	st r5, r6, r0			;activates tristate and ack
+	st r5, r6, r0			; activates tristate
 	     
-	ld r7, r6, r0	 		; r3 <= portData
+	ld r7, r6, r0	 		; r7 <- portData
     ldh r5, #00h
     ldl r5, #FFh
-    and r3, r7, r5          ; r3 <= x"00" & portData(7 downto 0)
+    and r3, r7, r5          ; r3 <- x"00" & portData(7 downto 0)
     
-    st r0, r6, r0			; deactivates ack and tristate
+    ;st r0, r6, r0			; deactivates tristate
 	rts
 ;end read_crypto
 
 write_crypto:
-; Objective: writes to data_in bus of cryptomessage and sets ack to '1' and then deactivates ack
+; Objective: writes to data_in bus of cryptomessage
 ; Argument: r1 <= data to be written
 ; Return: NULL
 	xor r0, r0, r0
     ldh r6, #80h            ;
-    ldl r6, #01h            ; r6 <= PortA regConfig address
+    ldl r6, #01h            ; r6 <- PortA regConfig address
 	ldh r5, #38h
 	ldl r5, #00h
-	st r5, r6, r0			; portData receives data from cryptomessage
+	st r5, r6, r0			; Sets regConfig so portData sends data to cryptomessage
 	
 	ldh r6, #80h            ;
-    ldl r6, #02h            ; r6 <= PortA Data address
-	ldh r5, #40h            ; r5 contains mask to activate only ack and sets tristate to '0'    
+    ldl r6, #02h            ; r6 <- PortA Data address
+	ldh r5, #00h            ; r5 contains mask to set tristate to '0'    
 	ldl r5, #FFh
     and r7, r1, r5
     
-	st r7, r6, r0			; portData sends x"40" & r1(7 downto 0) - (sets tristate to '0')
-    st r0, r6, r0			; deactivates ack and tristate
+	st r7, r6, r0			; portData sends x"00" & r1(7 downto 0) - (sets tristate to '0')
 	rts
 ;end write_crypto
+
+ack_pulse:
+; Objective: sends a pulse to the ack bit, without interfering in the rest of the regData of PortA
+; Argument: NULL
+; Return: NULL
+    xor r0, r0, r0
+    ldh r5, #80h            ;
+    ldl r5, #02h            ; r5 <- PortA regData address
+    ld r7, r5, r0           ; r7 <- PortA regData content
+    
+    ldh r6, #40h            ;
+    ldl r6, #00h            ; r6 <- mask to activate ack
+    or r7, r7, r6           ;
+    st r7, r5, r0           ; regData <- masked regData (ack = '1', others => unchanged)
+    
+    not r6, r6              ; r6 <- mask to deactivate ack
+    and r7, r7, r6          ; 
+    st r7, r5, r0           ; regData <- masked regData (ack = '0', others => unchanged)
+;end ack_pulse
 
 calc_magic_number:
 ; Objective:calculates R8's magic number = a exp x % q
