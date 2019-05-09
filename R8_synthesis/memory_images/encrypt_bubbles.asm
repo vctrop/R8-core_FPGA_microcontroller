@@ -294,9 +294,12 @@ decrypt_and_store:
 	xor r12, r11, r1 		; r12 <- decrypted data
 	
 	;store
-	ldh r10, #index
-	ldl r10, #index
-	ld r10, r10, r0			; r10 <- index
+	ldh r5, #index
+	ldl r5, #index
+	ld r10, r5, r0			; r10 <- index
+    add r8, r10, r0         ; r8 <- index
+    addi r8, #1             ;
+    st r8, r5, r0           ; index++
 	ldh r5, #0
 	ldl r5, #2 
 	div r10, r5 			; index/2  = adress offset  | index % 2 = lower or upper byte
