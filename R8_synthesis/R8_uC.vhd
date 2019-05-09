@@ -46,7 +46,7 @@ begin
         generic map (
             DATA_WIDTH  => 16,       
             ADDR_WIDTH  => 15,         
-            IMAGE       => "memory_images/mul_div_test_BRAM.txt"    
+            IMAGE       => "memory_images/encrypt_bubbles_BRAM.txt"    
             )
         port map(  
             clk         => clk_mem,

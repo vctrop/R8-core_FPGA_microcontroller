@@ -378,7 +378,7 @@ begin
                     
                 when Sdiv =>
                     if regB /= x"0000" then                            
-                        regHigh <= std_logic_vector(signed(regA) mod signed(regB));
+                        regHigh <= std_logic_vector(unsigned(regA) mod unsigned(regB));
                         regLow  <= std_logic_vector(signed(regA)  /  signed(regB));
                     end if;
                     currentState <= Sfetch;

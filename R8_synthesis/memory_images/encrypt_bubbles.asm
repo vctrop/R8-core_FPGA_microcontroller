@@ -108,7 +108,9 @@ handler_key_exchange:
 	    
 	;calculate key
 	xor r0, r0, r0
-	add r1, r10, r0 	 	; a = crypto's magic number 
+	ldh r5, #00h
+	ldl r5, #ffh
+	and r1, r10, r5 	 	; a = crypto's magic number and cleans upper byte
 	ldh r5, #random_x
 	ldl r5, #random_x
 	ld r2, r5, r0			; b = x
@@ -205,6 +207,7 @@ ack_pulse:
     not r6, r6              ; r6 <- mask to deactivate ack
     and r7, r7, r6          ; 
     st r7, r5, r0           ; regData <- masked regData (ack = '0', others => unchanged)
+	rts
 ;end ack_pulse
 
 calc_magic_number:
@@ -216,10 +219,13 @@ calc_magic_number:
 	xor r0, r0, r0
 	ldh r8, #random_x
 	ldl r8, #random_x
-	ld r10, r5, r0
+	ld r10, r8, r0
 	addi r10, #0
 	jmpzd #reset_random_cmn
-	subi r10, #251				; 0 < random_x < 251
+	jmpnd #reset_random_cmn
+	ldh r5, #0
+	ldl r5, #251
+	sub r5, r10, r5				; 0 < random_x < 251
 	jmpnd #decrement_random_cmn
 	reset_random_cmn:
 	xor r10, r10, r10
@@ -227,7 +233,7 @@ calc_magic_number:
 	decrement_random_cmn:
 	subi r10, #1
 	st r10, r8, r0 			; random_x--
-	add r2, r8, r0
+	add r2, r10, r0
 	ldh r1, #0
 	ldl r1, #6				; a = 6      
 	jsrd #exp_mod 			; return exp_mod(6, random_x) (6 ^ x % 251)

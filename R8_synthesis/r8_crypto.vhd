@@ -4,7 +4,7 @@ use IEEE.std_logic_1164.all;
 entity R8_crypto is
 end R8_crypto;
 
-architecture testbench of R8_uC_tb is
+architecture testbench of r8_crypto is
 	signal clk : std_logic := '0';  
 	signal rst: std_logic;
 	signal port_io	: std_logic_vector(15 downto 0);
