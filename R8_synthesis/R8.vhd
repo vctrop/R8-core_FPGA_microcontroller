@@ -98,6 +98,11 @@ architecture behavioral of R8 is
     signal C        : std_logic;
     signal V        : std_logic;
     
+    signal high_Z   : std_logic;
+    signal high_N   : std_logic;
+    signal low_Z    : std_logic;
+    signal low_N    : std_logic;
+    
     -- Status flags register
     signal regFlags     : std_logic_vector(3 downto 0);
     alias negativeFlag  : std_logic is regFlags(0);
@@ -366,10 +371,14 @@ begin
                 when Smfh =>
                     registerFile(RGT) <= regHigh;
                     currentState <= Sfetch;
+                    negativeFlag <= high_N;
+                    zeroFlag <= high_Z;
                 
                 when Smfl =>
                     registerFile(RGT) <= regLow;
                     currentState <= Sfetch;
+                    negativeFlag <= low_N;
+                    zeroFlag <= low_Z;
                     
                 when Smul =>
                     regHigh <= mulResult(31 downto 16);
@@ -431,13 +440,20 @@ begin
                 std_logic_vector(signed(opA)        +   signed(negativeB))  when decodedInstruction = SUB   else 
                 std_logic_vector(signed(negativeA)  +   signed(opB))        when decodedInstruction = SUBI  else
                 std_logic_vector(signed(opA)        +   signed(opB));
-                
+    
+    -- Combinatorial flag attribution
     N <= '1' when (ALUout(15) = '1')                    else '0';
     Z <= '1' when (unsigned(ALUout(15 downto 0)) = 0)   else '0';
     C <= '1' when (ALUout(16) = '1')                    else '0';     
     V <= ((not msbA) and  (not msbB) and msbOut) or (msbA and      msbB  and (not msbOut)) when decodedInstruction = ADD or decodedInstruction = ADDI       else        -- overflow under addition
          ((not msbA) and       msbB  and msbOut) or (msbA and (not msbB) and (not msbOut)) when decodedInstruction = SUB                                    else        -- overflow under subtraction
          ((not msbB) and       msbA  and msbOut) or (msbB and (not msbA) and (not msbOut));
+    
+    high_N  <= '1' when (regHigh(15) = '1')     else '0';
+    low_N   <= '1' when (regLow(15) = '1')      else '0';
+    high_Z  <= '1' when (unsigned(regHigh) = 0) else '0';
+    low_Z   <= '1' when (unsigned(regLow) = 0)  else '0';
+    
     
     -- Register file access address
     RS1 <= to_integer(unsigned(regIR(7 downto 4)));

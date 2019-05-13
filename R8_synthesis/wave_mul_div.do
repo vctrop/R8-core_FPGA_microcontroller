@@ -10,8 +10,14 @@ add wave -noupdate -label regB /r8_uc_tb/R8_uC/PROCESSOR/regB
 add wave -noupdate -label mulResult /r8_uc_tb/R8_uC/PROCESSOR/mulResult
 add wave -noupdate -label regHigh /r8_uc_tb/R8_uC/PROCESSOR/regHigh
 add wave -noupdate -label regLow /r8_uc_tb/R8_uC/PROCESSOR/regLow
+add wave -noupdate /r8_uc_tb/R8_uC/PROCESSOR/high_Z
+add wave -noupdate /r8_uc_tb/R8_uC/PROCESSOR/high_N
+add wave -noupdate /r8_uc_tb/R8_uC/PROCESSOR/low_Z
+add wave -noupdate /r8_uc_tb/R8_uC/PROCESSOR/low_N
+add wave -noupdate /r8_uc_tb/R8_uC/PROCESSOR/zeroFlag
+add wave -noupdate /r8_uc_tb/R8_uC/PROCESSOR/negativeFlag
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {3308415 ps} 0}
+WaveRestoreCursors {{Cursor 1} {29504091 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 291
 configure wave -valuecolwidth 40
@@ -27,4 +33,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {0 ps} {518832 ps}
+WaveRestoreZoom {0 ps} {1052126 ps}
