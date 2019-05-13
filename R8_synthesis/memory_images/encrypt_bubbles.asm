@@ -2,13 +2,13 @@
 .code
 boot:
     
-    ; Initiate stack pointer at 7FFFh
-    ldh r0, #7fh
-    ldl r0, #ffh
+    ; Initiate stack pointer at 2000
+    ldh r0, #07h
+    ldl r0, #d0h
     ldsp r0
     
-    ldh r0, #00h
-    ldl r0, #50h
+    ldh r0, #interruption_handler
+    ldl r0, #interruption_handler
     ldisra r0
     
     xor r0, r0, r0
@@ -41,7 +41,7 @@ boot:
     jmpd #BubbleSort
 ;end boot
 
-.org #0050h
+
 interruption_handler:
     push r0
     push r1
