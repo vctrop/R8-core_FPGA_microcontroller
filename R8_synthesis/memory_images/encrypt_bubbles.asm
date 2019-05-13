@@ -7,6 +7,10 @@ boot:
     ldl r0, #ffh
     ldsp r0
     
+    ldh r0, #00h
+    ldl r0, #50h
+    ldisra r0
+    
     xor r0, r0, r0
 	
     ldh r8, #80h            ;
@@ -21,7 +25,6 @@ boot:
     ldh r9, #20h            ; only key_exg interrupts the processor
     ldl r9, #00h            ; r8 <= PortA irqEnable content
     st r9, r8, r0           ; Write irqEnable content on its address
-	
 
     ldh r8, #80h            ;
     ldl r8, #00h            ; r8 <= PortA regEnable address
@@ -38,7 +41,7 @@ boot:
     jmpd #BubbleSort
 ;end boot
 
-.org #0040h
+.org #0050h
 interruption_handler:
     push r0
     push r1

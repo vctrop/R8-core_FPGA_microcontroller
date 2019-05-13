@@ -33,9 +33,6 @@ use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
 entity R8 is
-    generic(
-        INTERRUPT_HANDLER_ADDR : std_logic_vector(15 downto 0) := x"000f"
-    );
     port( 
         clk     : in std_logic;
         rst     : in std_logic;
@@ -57,11 +54,11 @@ architecture behavioral of R8 is
     type Instruction is ( 
         ADD, SUB, AAND, OOR, XXOR, ADDI, SUBI, NOT_A, 
         SL0, SL1, SR0, SR1,
-        LDL, LDH, LD, ST, LDSP, POP, PUSH, POPF, PUSHF,
+        LDL, LDH, LD, ST, LDSP, LDISRA, POP, PUSH, POPF, PUSHF,
         JUMP_R, JUMP_A, JUMP_D, JSRR, JSR, JSRD,
-        NOP, HALT,  RTS, RTI, JMP_INTR, DIV, MUL, MFH, MFL
+        NOP, HALT,  RTS, RTI, JMP_ISR, DIV, MUL, MFH, MFL
     );
-    type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spop, Spush, Spushf, Spopf, Sisr, Srti, Sintr, Smfh, Smfl, Smul, Sdiv);
+    type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spop, Spush, Spushf, Spopf, Srti, Sintr, Smfh, Smfl, Smul, Sdiv, Sldisra);
     type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
     
     -- instruction type signal to facilitate boolean operations
@@ -74,12 +71,13 @@ architecture behavioral of R8 is
     signal registerFile: RegisterArray(0 to 15);
     
     -- Basic registers
-    signal regPC  : std_logic_vector(15 downto 0);
-    signal regSP  : std_logic_vector(15 downto 0);
-    signal regALU : std_logic_vector(15 downto 0);
-    signal regIR  : std_logic_vector(15 downto 0);
-    signal regA   : std_logic_vector(15 downto 0);
-    signal regB   : std_logic_vector(15 downto 0);
+    signal regPC    : std_logic_vector(15 downto 0);
+    signal regSP    : std_logic_vector(15 downto 0);
+    signal regISRA  : std_logic_vector(15 downto 0);
+    signal regALU   : std_logic_vector(15 downto 0);
+    signal regIR    : std_logic_vector(15 downto 0);
+    signal regA     : std_logic_vector(15 downto 0);
+    signal regB     : std_logic_vector(15 downto 0);
     
     -- Division and multiplication registers
     signal regHigh  : std_logic_vector(15 downto 0);
@@ -152,7 +150,8 @@ begin
                             SR1     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"3" else
                             NOT_A   when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"4" else                              
                             HALT    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"6" else
-                            LDSP    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"7" else
+                            LDSP    when regIR(15 downto 8) = x"B0" and regIR(3 downto 0) = x"7" else
+                            LDISRA  when regIR(15 downto 8) = x"B1" and regIR(3 downto 0) = x"7" else
                             
                             PUSH    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"A" else 
                             POP     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"9" else
@@ -198,7 +197,7 @@ begin
                             MUL     when regIR(15 downto 8) = x"C1" else
                             DIV     when regIR(15 downto 8) = x"C2" else
                             
-                            JMP_INTR when regIR = x"B0FB" else                                      --reserved for interruption handler jump
+                            JMP_ISR when regIR = x"B0FB" else                                      --reserved for interruption handler jump
                             NOP;
 
     -- The target register is not source
@@ -214,6 +213,7 @@ begin
             registerFile    <= (others => (others=>'0'));	
             regPC           <= (others => '0');
             regSP           <= x"7FFF";                     -- conventional stack start adress
+            regISRA         <= x"0040";                     -- conventional ISR start address
             regALU          <= (others => '0');
             regIR           <= (others => '0');
             regA            <= (others => '0');
@@ -232,7 +232,7 @@ begin
                     if intr ='1' and InterruptionStatus = '0' then
                         InterruptionStatus <= '1';
                         currentState <= Sintr; 
-                        regIR <= x"B0FB";                                       --JMP_INTR microinstruction   
+                        regIR <= x"B0FB";                                       --JMP_ISR microinstruction   
                     else
 						regIR <= data_in;                                       -- regIR <= MEM[ADDRESS]
                         regPC <= std_logic_vector(unsigned(regPC)+1);           -- PC++
@@ -305,6 +305,9 @@ begin
                         
                     elsif decodedInstruction = POPF then
                         currentState <= Spopf;
+                        
+                    elsif decodedInstruction = LDISRA then   
+                        currentState <= Sldisra;
 
                     else                                -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
                         currentState <= Sfetch;   
@@ -365,7 +368,7 @@ begin
                     
                 when Sintr =>
                     regSP <= std_logic_vector(unsigned(regSP)-1);
-                    regPC <= INTERRUPT_HANDLER_ADDR;
+                    regPC <= regISRA;
                     currentState <= Sfetch;
 
                 when Smfh =>
@@ -392,6 +395,10 @@ begin
                     end if;
                     currentState <= Sfetch;
                     
+                when Sldisra =>
+                    regISRA <= regALU;
+                    currentState <= Sfetch;
+                    
                 when others  =>
                     currentState <= Shalt;              --HALT loops forever
                 
@@ -415,7 +422,7 @@ begin
                         regA;
                         
     opB(15 downto 0) <= regSP               when decodedInstruction = RTS or decodedInstruction = RTI or decodedInstruction = POP or decodedInstruction = POPF else
-                        regPC               when decodedInstruction = JUMP_R or decodedInstruction = JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  or decodedInstruction = JMP_INTR else
+                        regPC               when decodedInstruction = JUMP_R or decodedInstruction = JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  or decodedInstruction = JMP_ISR else
                         (x"000" & regFlags) when decodedInstruction = PUSHF else
                         regB;
     
@@ -435,7 +442,7 @@ begin
                 "00" & opA(15 downto 1)            	                        when decodedInstruction = SR0   else
                 "01" & opA(15 downto 1)            	                        when decodedInstruction = SR1   else
                 not opA                           	                        when decodedInstruction = NOT_A else 
-                opA                                                         when decodedInstruction = LDSP  or decodedInstruction = JUMP_A  or decodedInstruction = JSR else
+                opA                                                         when decodedInstruction = LDSP or decodedInstruction = LDISRA or decodedInstruction = JUMP_A  or decodedInstruction = JSR else
                 std_logic_vector(unsigned(opB)      +   1)                  when decodedInstruction = POP   or decodedInstruction = POPF    or decodedInstruction = RTS or decodedInstruction = RTI else
                 std_logic_vector(signed(opA)        +   signed(negativeB))  when decodedInstruction = SUB   else 
                 std_logic_vector(signed(negativeA)  +   signed(opB))        when decodedInstruction = SUBI  else

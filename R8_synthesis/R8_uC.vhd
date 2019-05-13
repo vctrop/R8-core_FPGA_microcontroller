@@ -27,9 +27,6 @@ architecture structural of R8_uC is
 begin
     
     PROCESSOR: entity work.R8(behavioral) 
-        generic map(
-            INTERRUPT_HANDLER_ADDR => x"0040"
-        )
         port map (
             clk         => clk, 
             rst         => rst, 
