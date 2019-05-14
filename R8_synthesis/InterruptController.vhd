@@ -27,7 +27,7 @@ entity InterruptController  is
         rst         : in std_logic; 
         data        : inout std_logic_vector (7 downto 0);
         address     : in std_logic_vector (1 downto 0);
-        wr          : in std_logic; -- wr = 0: Read; rw = 1: Write
+        wr          : in std_logic; -- wr = 0: Read; wr = 1: Write
         ce          : in std_logic;
         intr        : out std_logic; -- To processor
         irq         : in std_logic_vector (7 downto 0) -- Interrupt request
@@ -60,7 +60,7 @@ begin
             end loop;
                 
             -- IRQ reset (on processor acknowledgement)
-            if address = INT_ACK_ADDR and ce = '1' and rw = '1' then
+            if address = INT_ACK_ADDR and ce = '1' and wr = '1' then
                 irq_reg(TO_INTEGER(UNSIGNED(data))) <= '0';
             end if;
         
@@ -75,7 +75,7 @@ begin
         if rst = '1' then
             mask <= (others=>'0');
         elsif rising_edge(clk) then
-            if address = MASK_ADDR and ce = '1' and rw = '1' then
+            if address = MASK_ADDR and ce = '1' and wr = '1' then
                 mask <= data;
             end if;
         end if;
@@ -93,8 +93,8 @@ begin
         
     intr <= not idle;
     
-    data <= "00000" & highPriorityReq when address = IRQ_ID_ADDR and ce = '1' and rw = '0' else
-            mask when address = MASK_ADDR and ce = '1' and rw = '0' else
+    data <= "00000" & highPriorityReq when address = IRQ_ID_ADDR and ce = '1' and wr = '0' else
+            mask when address = MASK_ADDR and ce = '1' and wr = '0' else
             (others=>'Z');
         
 end Behavioral;

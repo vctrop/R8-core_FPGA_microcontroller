@@ -20,8 +20,9 @@ end R8_uC;
 architecture structural of R8_uC is
     
       signal clk, clk_mem, clk_div4 : std_logic;
-      signal rw, ce, rst, ce_mem, ce_io, ce_portA, rw_n, intr : std_logic;
+      signal rw, ce, rst, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr : std_logic;
       signal R8_out, R8_in, addressR8, mem_out, data_portA, irq : std_logic_vector(15 downto 0);
+      signal data_PIC, PIC_irq : std_logic_vector(7 downto 0);
       alias address_peripherals is addressR8(7 downto 4);
 
 begin
@@ -77,6 +78,23 @@ begin
             
         );
         
+    PIC: entity work.InterruptController
+    generic map(
+        IRQ_ID_ADDR     => "00", -- Interruption request number (vector)
+        INT_ACK_ADDR    => "01", -- Interrupt acknowledgement address
+        MASK_ADDR       => "10"  -- Mask register address
+    )
+    port map(  
+        clk         => clk,
+        rst         => rst, 
+        data        => data_PIC,
+        address     => addressR8(1 downto 0),
+        wr          => rw_n, -- wr = 0: Read; wr = 1: Write
+        ce          => ce_PIC,
+        intr        => intr, -- To processor
+        irq         => PIC_irq -- Interrupt request DATA PORT_A(15 DOWNTO 12) MUST BE ALWAYS INPUT
+    );
+    
     CLOCK_MANAGER : entity work.ClockManager 
         port map(
           clk_in      => board_clock,
@@ -90,19 +108,21 @@ begin
             rst_in   => board_rst,
             rst_out  => rst
         );
-        
 
-    --interrupt interface signals
-    intr <= irq(15) or irq(14) or irq(13) or irq(12) or irq(11) or irq(10) or irq(9) or irq(8) or        
-        irq(7) or irq(6) or irq(5) or irq(4) or irq(3) or irq(2) or irq(1) or irq(0); 
+    --interrupt interface
+    PIC_irq <= irq(15 downto 12) & x"0";
     
     -- Memory access control signals       
     rw_n   <= not rw;    
 
     data_portA <= R8_out when rw = '0' and ce_portA = '1' else      -- portA data i/o tristate
-            (others => 'Z'); 
+                (others => 'Z'); 
             
-    R8_in <=    data_portA when rw = '1' and ce_portA = '1' else                -- 
+    data_PIC <= R8_out(7 downto 0) when rw = '0' and ce_PIC = '1' else           -- PIC data i/o tristate
+                (others => 'Z');
+                
+    R8_in <=    data_portA when rw = '1' and ce_portA = '1' else 
+                x"00" & data_PIC   when rw = '1' and ce_PIC   = '1' else 
                 mem_out;
 
     --memory clock is inverted to work at falling edge borders of the R8 clock
@@ -112,7 +132,7 @@ begin
     -- write enable decoder:
     ce_mem      <= '1' when ce = '1' and addressR8(15) = '0' else '0';
     ce_io       <= '1' when ce = '1' and addressR8(15) = '1' else '0';
-    ce_portA    <= '1' when ce_io = '1' and address_peripherals = "0000" else '0';
-    
+    ce_portA    <= '1' when ce_io = '1' and address_peripherals = x"0" else '0';
+    ce_PIC      <= '1' when ce_io = '1' and address_peripherals = x"1" else '0';
 
 end structural;
