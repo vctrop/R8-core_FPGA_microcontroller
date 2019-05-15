@@ -7,42 +7,88 @@ boot:
     ldl r0, #d0h
     ldsp r0
     
-    ldh r0, #interruption_handler
-    ldl r0, #interruption_handler
+    ldh r0, #ISR
+    ldl r0, #ISR
     ldisra r0
     
     xor r0, r0, r0
 	
     ldh r8, #80h            ;
     ldl r8, #01h            ; r8 <= PortA regConfig address
-    ldh r9, #38h            ;
+    ldh r9, #F0h            ;
     ldl r9, #FFh            ; r9 <= PortA regConfig content
     st r9, r8, r0           ; Write regConfig content on its address
     
     
     ldh r8, #80h            ;
     ldl r8, #03h            ; r8 <= PortA irqEnable address
-    ldh r9, #20h            ; only key_exg interrupts the processor
+    ldh r9, #F0h            ; only key_exg interrupts the processor
     ldl r9, #00h            ; r8 <= PortA irqEnable content
     st r9, r8, r0           ; Write irqEnable content on its address
 
     ldh r8, #80h            ;
     ldl r8, #00h            ; r8 <= PortA regEnable address
-    ldh r9, #F8h            ;
+    ldh r9, #FFh            ;
     ldl r9, #FFh            ; r9 <= PortA regEnable content
     st r9, r8, r0           ; Write regEnable content on its address
     
-	ldh r8, #random_x
-	ldl r8, #random_x
+	ldh r8, #80h
+	ldl r8, #12h			; sets PIC interruption mask
+	ldh r9, #F0h			
+	ldl r9, #00h
+	st r9, r8, r0
+	
+	ldh r8, #random_x0
+	ldl r8, #random_x0
+	ldh r9, #0
+	ldl r9, #250
+	st r9, r8, r0
+	
+	ldh r8, #random_x1
+	ldl r8, #random_x1
+	ldh r9, #0
+	ldl r9, #250
+	st r9, r8, r0
+	
+	ldh r8, #random_x2
+	ldl r8, #random_x2
+	ldh r9, #0
+	ldl r9, #250
+	st r9, r8, r0
+	
+	ldh r8, #random_x3
+	ldl r8, #random_x3
 	ldh r9, #0
 	ldl r9, #250
 	st r9, r8, r0			; resets random_x to 250
+	
+	ldh r8, #irq_handlers
+	ldl r8, #irq_handlers
+	ldh r9, #handler_key_exchange0
+	ldl r9, #handler_key_exchange0
+	addi r0, #4
+	st r9, r8, r0 
+	
+	ldh r9, #handler_key_exchange1
+	ldl r9, #handler_key_exchange1
+	addi r0, #1
+	st r9, r8, r0
+	
+	ldh r9, #handler_key_exchange2
+	ldl r9, #handler_key_exchange2
+	addi r0, #1
+	st r9, r8, r0
+	
+	ldh r9, #handler_key_exchange3
+	ldl r9, #handler_key_exchange3
+	addi r0, #1
+	st r9, r8, r0
 	
     jmpd #BubbleSort
 ;end boot
 
 
-interruption_handler:
+ISR:
     push r0
     push r1
     push r2
@@ -62,16 +108,18 @@ interruption_handler:
     pushf
     
     xor r0, r0, r0
-    ldh r6, #80h            ;
-    ldl r6, #02h            ; r6 <= PortA Data address
-	ld r5, r6, r0
-    
-    ldh r7, #20h            ; mask to check if the interruption happens due to key_exg
-    ldl r7, #00h            ; 
-    and r8, r7, r5
-    jmpzd #end_interruption_handler
-    jsrd #handler_key_exchange
-    
+    ldh r8, #80h
+	ldl r8, #10h
+	ld r9, r8, r0			; reads interruption number
+	ldh r8, #irq_handlers
+	ldl r8, #irq_handlers
+	add r8, r9, r8
+	jsr r8					; jumps to appropriate handler 
+	xor r0, r0, r0 
+	ldh r8, #80h
+	ldl r8, #11h
+	st r0, r8, r0
+	
     end_interruption_handler:
     popf
     pop r15
@@ -399,10 +447,13 @@ end:
 ; Data area (variables)
 .org #1000
 .data
-    ;array:     		db #50h, #49h, #48h, #47h, #46h, #45h, #44h, #43h, #42h, #41h,#40h, #39h, #38h, #37h, #36h, #35h, #34h, #33h, #32h, #31h, #30h, #29h, #28h, #27h, #26h, #25h, #24h, #23h, #22h, #21h, #20h, #19h, #18h, #17h, #16h, #15h, #14h, #13h, #12h, #11h, #10h, #9h, #8h, #7h, #6h, #5h, #4h, #3h, #2h, #1h
+	irq_handlers 	db #0, #0, #0, #0, #0, #0, #0, #0
 	array:     		db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 
 	size:      		db #50    ; 'array' size  
-	random_x:   	db #250 	 ; first random number b to calculate crypto key; is decremented each exchange
+	random_x0:   	db #250 	 ; first random number b to calculate crypto key; is decremented each exchange
+	random_x1:   	db #250 	 ; first random number b to calculate crypto key; is decremented each exchange
+	random_x2:   	db #250 	 ; first random number b to calculate crypto key; is decremented each exchange
+	random_x3:   	db #250 	 ; first random number b to calculate crypto key; is decremented each exchange
 	crypto_key:	 	db #0
 	index:			db #0
 	msg: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
