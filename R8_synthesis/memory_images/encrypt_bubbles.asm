@@ -38,30 +38,19 @@ boot:
 	ldl r9, #00h
 	st r9, r8, r0
 	
-	ldh r8, #random_x0
-	ldl r8, #random_x0
+	ldh r8, #random_x
+	ldl r8, #random_x
 	ldh r9, #0
 	ldl r9, #250
-	st r9, r8, r0
-	
-	ldh r8, #random_x1
-	ldl r8, #random_x1
-	ldh r9, #0
-	ldl r9, #250
-	st r9, r8, r0
-	
-	ldh r8, #random_x2
-	ldl r8, #random_x2
-	ldh r9, #0
-	ldl r9, #250
-	st r9, r8, r0
-	
-	ldh r8, #random_x3
-	ldl r8, #random_x3
-	ldh r9, #0
-	ldl r9, #250
-	st r9, r8, r0			; resets random_x to 250
-	
+	st r9, r8, r0			;random_x(0) <- 250
+	addi r0, #1
+	st r9, r8, r0			;random_x(1) <- 250
+	addi r0, #1
+	st r9, r8, r0			;random_x(2) <- 250
+	addi r0, #1
+	st r9, r8, r0			;random_x(3) <- 250
+
+	xor r0, r0, r0
 	ldh r8, #irq_handlers
 	ldl r8, #irq_handlers
 	ldh r9, #handler_key_exchange0
@@ -142,9 +131,16 @@ ISR:
 ;end interruption_handler
    
    
-handler_key_exchange:
-; Objective: handles message exchange between the R8 and the cryptomessage
-; Argument: NULL
+handler_key_exchange0:
+;sets arg to 0 and jumps to crypto_message_handler
+handler_key_exchange1:
+handler_key_exchange2:
+handler_key_exchange3:
+
+
+crypto_message_handler:
+; Objective: handles message exchange between the R8 and the cryptomessage(n)
+; Argument: r1 <- crypto number (0, 1, 2 or 3)
 ; Return: NULL
 	push r10
 	push r11
@@ -197,80 +193,151 @@ handler_key_exchange:
 	pop r11
 	pop r10
     rts
-;end handler_key_exchange
+;end crypto_message_handler
 
+; crypto read and write operations, op being bits(9:8) of regData:
+	;op = "00" indica leitura de sinais de data_av e eom 
+	;op = "01" indica leitura de DADOS do crypto sem mandar sinal de ack 
+	;op = "10" indica leitura de DADOS do crypto COM sinal de ack 
+	;op = "11" indica ESCRITA de dados no crypto COM sinal de ack
 read_crypto:
 ; Objective: reads data_in bus from cryptomessage
-; Argument: NULL
+; Argument: r1 <- cripto_id  (ALREADY SHIFTED TO BITS 11:10)
 ; Return: r3 <= data_out of cryptomessage
 	xor r0, r0, r0          ; 
+	ldh r6, #0Dh
+	ldl r6, #00h			; read crypto op is 01
+	and r7, r6, r1 			; r7 <- id & op 
+	
     ldh r6, #80h            ;
     ldl r6, #01h            ; r6 <- PortA regConfig address
-	ldh r5, #38h
+	ldh r5, #f0h
 	ldl r5, #FFh
 	st r5, r6, r0			; Sets regConfig so portData receives data from cryptomessage
 	
 	ldh r6, #80h            ;
     ldl r6, #02h            ; r6 <- PortA Data address
-	ldh r5, #80h
-	ldl r5, #00h
-	st r5, r6, r0			; activates tristate
-	     
-	ld r3, r6, r0	 		; r7 <- portData
+	st r7, r6, r0			; writes id and op in regData to allow signals to be input
+	ld r3, r6, r0	 		; r3 <- portData
 	rts
 ;end read_crypto
 
-write_crypto:
-; Objective: writes to data_in bus of cryptomessage
-; Argument: r1 <= data to be written
-; Return: NULL
-	xor r0, r0, r0
+
+read_crypto_ack:
+; Objective: reads data_in bus from cryptomessage and activates ack PULSE
+; Argument: r1 <- cripto_id (ALREADY SHIFTED TO BITS 11:10)
+; Return: r3 <- data_out of cryptomessage
+	xor r0, r0, r0          ; 
+	ldh r6, #0Eh
+	ldl r6, #00h			; read crypt_ack op is 10
+	and r7, r6, r1 			; r7 <- id & op 
+	
     ldh r6, #80h            ;
     ldl r6, #01h            ; r6 <- PortA regConfig address
-	ldh r5, #38h
-	ldl r5, #00h
+	ldh r5, #f0h
+	ldl r5, #FFh
+	st r5, r6, r0			; Sets regConfig so portData receives data from cryptomessage
+	
+	ldh r6, #80h            ;
+    ldl r6, #02h            ; r6 <- PortA Data address
+	st r7, r6, r0			; writes id and op in regData to allow signals to be input and ack signal to be set     
+	ld r3, r6, r0	 		; r3 <- portData
+	st r0, r6, r0			; clears ack pulse
+	rts
+;end read_crypto_ack
+
+
+read_signals:
+; Objective: reads data_av and eom signals from cryptomessage
+; Argument: r1 <- cripto_id
+; Return: r3 <= x"00" & eom(cripto_id) & data_av(cripto_id)
+	xor r0, r0, r0
+	;ATTENTION !! WE SHOULD DO THIS ONCE IN THE MAIN FUNCTION AND USE EXPLICIT ID IN FUNCTION PARAMETERS!! CHANGE LATER!!!
+			xor r5, r5, r5    
+			addi r5, #11
+			shifter_rs:
+				sl0 r1, r1
+				subi r5, #1
+				jmpzd #shifter_rs	; shifts r1 11 positions to the left in the correct id position 
+	;-------------------------------------------------------------------------------------------
+	ldh r6, #0Ch
+	ldl r6, #00h			; read signals op is 00
+	and r7, r6, r1 			; r7 <- id & op 
+	
+    ldh r6, #80h            ;
+    ldl r6, #01h            ; r6 <- PortA regConfig address
+	ldh r5, #F0h
+	ldl r5, #FFh
+	st r5, r6, r0			; Sets regConfig so portData receives data from cryptomessage
+	
+	ldh r6, #80h            ;
+    ldl r6, #02h            ; r6 <- PortA Data address
+	st r7, r6, r0			; writes id and op in regData to allow signals to be input
+	     
+	ld r3, r6, r0	 		; r3 <- signals
+	rts
+;end read_signals
+
+
+write_crypto:
+; Objective: writes to data_in bus of cryptomessage and activates ack PULSE
+; Argument: r1 <- data to be written, r2 <- cripto_id (ALREADY SHIFTED TO BITS 11:10)
+; Return: NULL
+	xor r0, r0, r0
+	ldh r6, #0Fh
+	ldl r6, #FFh			; write crypto op is 11
+	and r7, r6, r2 			; r7 <- id & op 
+	
+    ldh r6, #80h            ;
+    ldl r6, #01h            ; r6 <- PortA regConfig address
+	ldh r5, #F0h
+	ldl r5, #FFh
 	st r5, r6, r0			; Sets regConfig so portData sends data to cryptomessage
 	
 	ldh r6, #80h            ;
     ldl r6, #02h            ; r6 <- PortA Data address
-	ldh r5, #00h            ; r5 contains mask to set tristate to '0'    
-	ldl r5, #FFh
-    and r7, r1, r5
-    
-	st r7, r6, r0			; portData sends x"00" & r1(7 downto 0) - (sets tristate to '0')
+    and r7, r1, r7
+	st r7, r6, r0			; portData sends "00" & id & op & r1(7 downto 0) setting ack = '1'
+	
+	st r0, r6, r0			; disables ack
+	
 	rts
 ;end write_crypto
 
-ack_pulse:
-; Objective: sends a pulse to the ack bit, without interfering in the rest of the regData of PortA
-; Argument: NULL
-; Return: NULL
-    xor r0, r0, r0
-    ldh r5, #80h            ;
-    ldl r5, #02h            ; r5 <- PortA regData address
-    ld r7, r5, r0           ; r7 <- PortA regData content
+
+; ack_pulse:
+; ; Objective: sends a pulse to the ack bit, without interfering in the rest of the regData of PortA
+; ; Argument: NULL
+; ; Return: NULL
+    ; xor r0, r0, r0
+    ; ldh r5, #80h            ;
+    ; ldl r5, #02h            ; r5 <- PortA regData address
+    ; ld r7, r5, r0           ; r7 <- PortA regData content
     
-    ldh r6, #40h            ;
-    ldl r6, #00h            ; r6 <- mask to activate ack
-    or r7, r7, r6           ;
-    st r7, r5, r0           ; regData <- masked regData (ack = '1', others => unchanged)
+    ; ldh r6, #40h            ;
+    ; ldl r6, #00h            ; r6 <- mask to activate ack
+    ; or r7, r7, r6           ;
+    ; st r7, r5, r0           ; regData <- masked regData (ack = '1', others => unchanged)
     
-    not r6, r6              ; r6 <- mask to deactivate ack
-    and r7, r7, r6          ; 
-    st r7, r5, r0           ; regData <- masked regData (ack = '0', others => unchanged)
-	rts
-;end ack_pulse
+    ; not r6, r6              ; r6 <- mask to deactivate ack
+    ; and r7, r7, r6          ; 
+    ; st r7, r5, r0           ; regData <- masked regData (ack = '0', others => unchanged)
+	; rts
+; ;end ack_pulse
 
 calc_magic_number:
 ; Objective: calculates R8's magic number = a exp x % q
-; Argument: NULL
+; Argument: r1 <- crypto index number
 ; Return: r3 <= magic_number
 	;decrementar random_x (e verificar x < q e x > 0 ) 
 	push r10
+	
 	xor r0, r0, r0
 	ldh r8, #random_x
 	ldl r8, #random_x
+	add r8, r8, r1
 	ld r10, r8, r0
+	
 	addi r10, #0
 	jmpzd #reset_random_cmn
 	jmpnd #reset_random_cmn
@@ -279,21 +346,21 @@ calc_magic_number:
 	sub r5, r10, r5				; 0 < random_x < 251
 	jmpnd #decrement_random_cmn
 	reset_random_cmn:
-	xor r10, r10, r10
-	addi r10, #251
+		xor r10, r10, r10
+		addi r10, #251
 	decrement_random_cmn:
 	subi r10, #1
 	st r10, r8, r0 			; random_x--
 	add r2, r10, r0
 	ldh r1, #0
 	ldl r1, #6				; a = 6      
-	jsrd #exp_mod 			; return exp_mod(6, random_x) (6 ^ x % 251)
+	jsrd #exp_mod 			; return exp_mod(6, random_x) which is (6 ^ x % 251)
 	pop r10
 	rts
 ;end calc_magic_number:
 
 exp_mod:
-; Objective: calculates f = a exp b % q, using q = 251 and a = 6
+; Objective: calculates f = a exp b % q, using q = 251
 ; Argument: r1 <- a , r2 <- b 
 ; Return: r3 <- f
 	push r10
@@ -327,7 +394,7 @@ exp_mod:
 
 decrypt_and_store:
 ; Objective: decrypts data and stores in the apropriate memory location
-; Argument: r1 <=  encrypted data
+; Argument: r1 <=  encrypted data, r2 <- crypto number index
 ; Return: NULL
 	push r10
 	push r11
@@ -335,18 +402,21 @@ decrypt_and_store:
 	push r13
 	push r14
 	
+	;decrypt
 	xor r0, r0, r0
 	ldh r5, #00h
 	ldl r5, #ffh
 	and r1, r1, r5			; cleans upper byte 
 	ldh r5, #crypto_key
 	ldl r5, #crypto_key
+	add r5, r5, r2
 	ld r11, r5, r0 
 	xor r12, r11, r1 		; r12 <- decrypted data
 	
 	;store
 	ldh r5, #index
 	ldl r5, #index
+	add r5, r5, r2
 	ld r10, r5, r0			; r10 <- index
     add r8, r10, r0         ; r8 <- index
     addi r8, #1             ;
@@ -356,9 +426,16 @@ decrypt_and_store:
 	div r10, r5 			; index/2  = adress offset  | index % 2 = lower or upper byte
 	mfh r6				; mod
 	mfl r7 				; div
-	ldh r13, #msg
-	ldl r13, #msg
+	
+	ldh r13, #msg0
+	ldl r13, #msg0
+	ldh r5, #0
+	ldl r5, #100
+	mul r5, r2
+	mfl r5
+	add r13, r13, r5 	; r13 <- &msg 
 	ld r14, r13, r7 	; msg[index/2]
+	
 	addi r6, #0
 	jmpzd #upper_byte_ds
 		or r12, r12, r14		; puts data to lower byte 
@@ -450,11 +527,11 @@ end:
 	irq_handlers 	db #0, #0, #0, #0, #0, #0, #0, #0
 	array:     		db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 
 	size:      		db #50    ; 'array' size  
-	random_x0:   	db #250 	 ; first random number b to calculate crypto key; is decremented each exchange
-	random_x1:   	db #250 	 ; first random number b to calculate crypto key; is decremented each exchange
-	random_x2:   	db #250 	 ; first random number b to calculate crypto key; is decremented each exchange
-	random_x3:   	db #250 	 ; first random number b to calculate crypto key; is decremented each exchange
-	crypto_key:	 	db #0
-	index:			db #0
-	msg: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
+	random_x:   	db #250, #250, #250, #250 	 ; first random number b to calculate crypto key; is decremented each exchange
+	crypto_key:	 	db #0, #0, #0, #0
+	index:			db #0, #0, #0, #0
+	msg0: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
+	msg1: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
+	msg2: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
+	msg3: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 .enddata
