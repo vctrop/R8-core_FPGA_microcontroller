@@ -133,9 +133,32 @@ ISR:
    
 handler_key_exchange0:
 ;sets arg to 0 and jumps to crypto_message_handler
+	ldh r1, #0
+	ldl r1, #0
+	jsrd #crypto_message_handler
+	rts
+;
+
 handler_key_exchange1:
+	ldh r1, #0
+	ldl r1, #1
+	jsrd #crypto_message_handler
+	rts
+;
+
 handler_key_exchange2:
+	ldh r1, #0
+	ldl r1, #2
+	jsrd #crypto_message_handler
+	rts
+;
+
 handler_key_exchange3:
+	ldh r1, #0
+	ldl r1, #3
+	jsrd #crypto_message_handler
+	rts
+;
 
 
 crypto_message_handler:
@@ -145,13 +168,29 @@ crypto_message_handler:
 	push r10
 	push r11
 	push r12
-    jsrd #read_crypto
+	push r14 
+	push r15
+	
+	xor r0, r0, r0
+	add r14, r1, r0			; r14 contains cripto_number
+	xor r5, r5, r5    
+	addi r5, #10
+	shifter_mh:
+		sl0 r1, r1
+		subi r5, #1			; r5 <- r1 << 10
+		jmpzd #shifter_mh
+	add r1, r15, r0			; r15 contains cripto_id
+	
+	add r3, r15, r0
+    jsrd #read_crypto		; read_crypto(crypto_id)
+	
     xor r0, r0, r0
     add r10, r3, r0         ; r10 contains cryptomessage magic number
     jsrd #calc_magic_number
+	
     add r1, r3, r0          ; r1 <- magic_number
-    jsrd #write_crypto
-    jsrd #ack_pulse
+	add r2, r15, r0			; r15 contains cripto_id
+    jsrd #write_crypto		; write_crypto(magic_number, crypto_id)
 	    
 	;calculate key
 	xor r0, r0, r0
@@ -160,35 +199,44 @@ crypto_message_handler:
 	and r1, r10, r5 	 	; a = crypto's magic number and cleans upper byte
 	ldh r5, #random_x
 	ldl r5, #random_x
-	ld r2, r5, r0			; b = x
+	add r5, r5, r14			; 
+	ld r2, r5, r0			; r2 <- random_x[cripto_number]
 	jsrd #exp_mod			; 
+	
 	ldh r5, #crypto_key
 	ldl r5, #crypto_key
-	st r3, r5, r0			; crypto_key <- magic_number_B ^ x % q
+	add r5, r5, r14
+	st r3, r5, r0			; crypto_key[cripto_number] <- magic_number_B ^ x % q
 	
 	xor r0, r0, r0
 	ldh r5, #index
 	ldl r5, #index
+	add r5, r5, r15
 	st r0, r5, r0 			; reset index
-	ldh r11, #10h
-	ldl r11, #00h		; data_av mask (must save between calls!!)
-	ldh r12, #08h
-	ldl r12, #00h		; eof mask (must save between calls!!)
+	ldh r11, #00h
+	ldl r11, #01h		; data_av mask (must save between calls!!)
+	ldh r12, #00h
+	ldl r12, #03h		; eof mask (must save between calls!!)
     pooling:
-		jsrd #read_crypto
+		add r1, r15, r0
+		jsrd #read_signals		; read_signals(crypto_id)
+		add r10, r0, r3			; signal data must be saved to check for eom
 		and r6, r11, r3 		; if(data_av = '1') decrypt_data
-		;talvez considerar mais condições
 		jmpzd #pooling			; else pool again
 		
+		add r1, r15, r0
+		jsrd #read_crypto_ack	; read_crypto_ack(crypto_id)
+		
 		xor r0, r0, r0
-		add r1, r0, r3			; decrypt_and_store(portData)
-		add r10, r0, r3			; portData must be save between calls
-		jsrd #decrypt_and_store
-		jsrd #ack_pulse			; data was read and is in memory
+		add r1, r0, r3			; 
+		add r2, r14, r0			;
+		jsrd #decrypt_and_store	; decrypt_and_store(crypto_data, crypto_number)
 		
 		and r7, r10, r12 		; check if this was the oef
 		jmpzd #pooling			; if(!eof), else end key exchange
     end_of_message:
+	pop r15
+	pop r14
 	pop r12
 	pop r11
 	pop r10
@@ -249,17 +297,9 @@ read_crypto_ack:
 
 read_signals:
 ; Objective: reads data_av and eom signals from cryptomessage
-; Argument: r1 <- cripto_id
+; Argument: r1 <- cripto_id  (ALREADY SHIFTED TO BITS 11:10)
 ; Return: r3 <= x"00" & eom(cripto_id) & data_av(cripto_id)
 	xor r0, r0, r0
-	;ATTENTION !! WE SHOULD DO THIS ONCE IN THE MAIN FUNCTION AND USE EXPLICIT ID IN FUNCTION PARAMETERS!! CHANGE LATER!!!
-			xor r5, r5, r5    
-			addi r5, #11
-			shifter_rs:
-				sl0 r1, r1
-				subi r5, #1
-				jmpzd #shifter_rs	; shifts r1 11 positions to the left in the correct id position 
-	;-------------------------------------------------------------------------------------------
 	ldh r6, #0Ch
 	ldl r6, #00h			; read signals op is 00
 	and r7, r6, r1 			; r7 <- id & op 
@@ -304,31 +344,10 @@ write_crypto:
 	rts
 ;end write_crypto
 
-
-; ack_pulse:
-; ; Objective: sends a pulse to the ack bit, without interfering in the rest of the regData of PortA
-; ; Argument: NULL
-; ; Return: NULL
-    ; xor r0, r0, r0
-    ; ldh r5, #80h            ;
-    ; ldl r5, #02h            ; r5 <- PortA regData address
-    ; ld r7, r5, r0           ; r7 <- PortA regData content
-    
-    ; ldh r6, #40h            ;
-    ; ldl r6, #00h            ; r6 <- mask to activate ack
-    ; or r7, r7, r6           ;
-    ; st r7, r5, r0           ; regData <- masked regData (ack = '1', others => unchanged)
-    
-    ; not r6, r6              ; r6 <- mask to deactivate ack
-    ; and r7, r7, r6          ; 
-    ; st r7, r5, r0           ; regData <- masked regData (ack = '0', others => unchanged)
-	; rts
-; ;end ack_pulse
-
 calc_magic_number:
 ; Objective: calculates R8's magic number = a exp x % q
 ; Argument: r1 <- crypto index number
-; Return: r3 <= magic_number
+; Return: r3 <- magic_number
 	;decrementar random_x (e verificar x < q e x > 0 ) 
 	push r10
 	
@@ -394,7 +413,7 @@ exp_mod:
 
 decrypt_and_store:
 ; Objective: decrypts data and stores in the apropriate memory location
-; Argument: r1 <=  encrypted data, r2 <- crypto number index
+; Argument: r1 <-  encrypted data, r2 <- crypto number index
 ; Return: NULL
 	push r10
 	push r11
@@ -459,7 +478,8 @@ decrypt_and_store:
 	pop r11
 	pop r10
 	rts
-			
+;end decrypt_and_store
+	
 	
 BubbleSort:
    
