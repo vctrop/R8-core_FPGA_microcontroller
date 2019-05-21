@@ -118,7 +118,7 @@ begin
     data_portA <= R8_out when rw = '0' and ce_portA = '1' else      -- portA data i/o tristate
                 (others => 'Z'); 
             
-    data_PIC <= R8_out(7 downto 0) when rw = '0' and ce_PIC = '1' else           -- PIC data i/o tristate
+    data_PIC <= R8_out(15 downto 8) when rw = '0' and ce_PIC = '1' else           -- PIC data i/o tristate
                 (others => 'Z');
                 
     R8_in <=    data_portA when rw = '1' and ce_portA = '1' else 

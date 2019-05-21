@@ -11,7 +11,7 @@ end R8_crypto;
 
 architecture structural of r8_crypto is
 	signal port_io	: std_logic_vector(15 downto 0);
-	signal data_in, data_out, data_out0, data_out1, data_out2, data_out3 : std_logic_vector(7 downto 0);
+	signal data_mux, data_in, data_out0, data_out1, data_out2, data_out3 : std_logic_vector(7 downto 0);
 	signal ack0, ack1, ack2, ack3 : std_logic;
 	signal eom0, eom1, eom2, eom3 : std_logic;
 	signal data_av0, data_av1, data_av2, data_av3 : std_logic;
@@ -106,10 +106,10 @@ begin
 	--op = "10" indica leitura de DADOS do crypto COM sinal de ack 
 	--op = "11" indica ESCRITA de dados no crypto COM sinal de ack
 	
-	data_mux <= data_out0 when id = "00" and op = "01" or op = "10" else
-				data_out1 when id = "01" and op = "01" or op = "10" else
-				data_out2 when id = "10" and op = "01" or op = "10" else
-				data_out3 when id = "11" and op = "01" or op = "10" else
+	data_mux <= data_out0 when id = "00" and (op = "01" or op = "10") else
+				data_out1 when id = "01" and (op = "01" or op = "10") else
+				data_out2 when id = "10" and (op = "01" or op = "10") else
+				data_out3 when id = "11" and (op = "01" or op = "10") else
 				(0 => data_av0, 1 => eom0, others => '0') when id = "00" and op = "00" else  
 				(0 => data_av1, 1 => eom1, others => '0') when id = "01" and op = "00" else  
 				(0 => data_av2, 1 => eom2, others => '0') when id = "10" and op = "00" else  
@@ -118,11 +118,9 @@ begin
 	crypto_io <= data_mux when op /= "11" else (others => 'Z');
 	
 	--
-	ack0 <= ack when id = "00" else "0";
-	ack1 <= ack when id = "01" else "0";
-	ack2 <= ack when id = "10" else "0";
-	ack3 <= ack when id = "11" else "0";
-	
-	data_out <= 
+	ack0 <= ack when id = "00" else '0';
+	ack1 <= ack when id = "01" else '0';
+	ack2 <= ack when id = "10" else '0';
+	ack3 <= ack when id = "11" else '0';
 	
 end structural;
