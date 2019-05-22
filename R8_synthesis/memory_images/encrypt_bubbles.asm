@@ -103,6 +103,7 @@ ISR:
 	ldh r8, #irq_handlers
 	ldl r8, #irq_handlers
 	add r8, r9, r8
+    ld r8, r8, r0
 	jsr r8					; jumps to appropriate handler 
 	xor r0, r0, r0 
 	ldh r8, #80h
@@ -178,15 +179,16 @@ crypto_message_handler:
 	shifter_mh:
 		sl0 r1, r1
 		subi r5, #1			; r5 <- r1 << 10
-		jmpzd #shifter_mh
-	add r1, r15, r0			; r15 contains cripto_id
-	
-	add r3, r15, r0
+		jmpzd #shifter_end
+        jmpd #shifter_mh
+	shifter_end:
+    add r15, r1, r0			; r15 contains cripto_id
     jsrd #read_crypto		; read_crypto(crypto_id)
 	
     xor r0, r0, r0
     add r10, r3, r0         ; r10 contains cryptomessage magic number
-    jsrd #calc_magic_number
+    add r1, r14, r0
+    jsrd #calc_magic_number ; calc_magic_number(crypto_number)
 	
     add r1, r3, r0          ; r1 <- magic_number
 	add r2, r15, r0			; r15 contains cripto_id
@@ -211,8 +213,9 @@ crypto_message_handler:
 	xor r0, r0, r0
 	ldh r5, #index
 	ldl r5, #index
-	add r5, r5, r15
+	add r5, r5, r14
 	st r0, r5, r0 			; reset index
+    
 	ldh r11, #00h
 	ldl r11, #01h		; data_av mask (must save between calls!!)
 	ldh r12, #00h
@@ -253,9 +256,9 @@ read_crypto:
 ; Argument: r1 <- cripto_id  (ALREADY SHIFTED TO BITS 11:10)
 ; Return: r3 <= data_out of cryptomessage
 	xor r0, r0, r0          ; 
-	ldh r6, #0Dh
+	ldh r6, #01h
 	ldl r6, #00h			; read crypto op is 01
-	and r7, r6, r1 			; r7 <- id & op 
+	or r7, r6, r1 			; r7 <- id | op 
 	
     ldh r6, #80h            ;
     ldl r6, #01h            ; r6 <- PortA regConfig address
@@ -265,7 +268,7 @@ read_crypto:
 	
 	ldh r6, #80h            ;
     ldl r6, #02h            ; r6 <- PortA Data address
-	st r7, r6, r0			; writes id and op in regData to allow signals to be input
+	st r7, r6, r0			; writes id or op in regData to allow signals to be input
 	ld r3, r6, r0	 		; r3 <- portData
 	rts
 ;end read_crypto
@@ -276,9 +279,9 @@ read_crypto_ack:
 ; Argument: r1 <- cripto_id (ALREADY SHIFTED TO BITS 11:10)
 ; Return: r3 <- data_out of cryptomessage
 	xor r0, r0, r0          ; 
-	ldh r6, #0Eh
+	ldh r6, #02h
 	ldl r6, #00h			; read crypt_ack op is 10
-	and r7, r6, r1 			; r7 <- id & op 
+	or r7, r6, r1 			; r7 <- id & op 
 	
     ldh r6, #80h            ;
     ldl r6, #01h            ; r6 <- PortA regConfig address
@@ -288,7 +291,7 @@ read_crypto_ack:
 	
 	ldh r6, #80h            ;
     ldl r6, #02h            ; r6 <- PortA Data address
-	st r7, r6, r0			; writes id and op in regData to allow signals to be input and ack signal to be set     
+	st r7, r6, r0			; writes id | op in regData to allow signals to be input and ack signal to be set     
 	ld r3, r6, r0	 		; r3 <- portData
 	st r0, r6, r0			; clears ack pulse
 	rts
@@ -300,9 +303,9 @@ read_signals:
 ; Argument: r1 <- cripto_id  (ALREADY SHIFTED TO BITS 11:10)
 ; Return: r3 <= x"00" & eom(cripto_id) & data_av(cripto_id)
 	xor r0, r0, r0
-	ldh r6, #0Ch
+	ldh r6, #00h
 	ldl r6, #00h			; read signals op is 00
-	and r7, r6, r1 			; r7 <- id & op 
+	or r7, r6, r1 			; r7 <- id | op 
 	
     ldh r6, #80h            ;
     ldl r6, #01h            ; r6 <- PortA regConfig address
@@ -312,7 +315,7 @@ read_signals:
 	
 	ldh r6, #80h            ;
     ldl r6, #02h            ; r6 <- PortA Data address
-	st r7, r6, r0			; writes id and op in regData to allow signals to be input
+	st r7, r6, r0			; writes id | op in regData to allow signals to be input
 	     
 	ld r3, r6, r0	 		; r3 <- signals
 	rts
@@ -324,9 +327,9 @@ write_crypto:
 ; Argument: r1 <- data to be written, r2 <- cripto_id (ALREADY SHIFTED TO BITS 11:10)
 ; Return: NULL
 	xor r0, r0, r0
-	ldh r6, #0Fh
-	ldl r6, #FFh			; write crypto op is 11
-	and r7, r6, r2 			; r7 <- id & op 
+	ldh r6, #03h
+	ldl r6, #00h			; write crypto op is 11
+	or r7, r6, r2 			; r7 <- id | op 
 	
     ldh r6, #80h            ;
     ldl r6, #01h            ; r6 <- PortA regConfig address
@@ -336,8 +339,8 @@ write_crypto:
 	
 	ldh r6, #80h            ;
     ldl r6, #02h            ; r6 <- PortA Data address
-    and r7, r1, r7
-	st r7, r6, r0			; portData sends "00" & id & op & r1(7 downto 0) setting ack = '1'
+    or r7, r7, r1
+	st r7, r6, r0			; portData sends id | op | r1(7 downto 0) setting ack = '1'
 	
 	st r0, r6, r0			; disables ack
 	
@@ -544,7 +547,7 @@ end:
 ; Data area (variables)
 .org #1000
 .data
-	irq_handlers 	db #0, #0, #0, #0, #0, #0, #0, #0
+	irq_handlers: 	db #0, #0, #0, #0, #0, #0, #0, #0
 	array:     		db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 
 	size:      		db #50    ; 'array' size  
 	random_x:   	db #250, #250, #250, #250 	 ; first random number b to calculate crypto key; is decremented each exchange
