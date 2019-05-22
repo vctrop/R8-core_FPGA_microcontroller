@@ -31,12 +31,6 @@ boot:
     ldh r9, #FFh            ;
     ldl r9, #FFh            ; r9 <= PortA regEnable content
     st r9, r8, r0           ; Write regEnable content on its address
-    
-	ldh r8, #80h
-	ldl r8, #12h			; sets PIC interruption mask
-	ldh r9, #F0h			
-	ldl r9, #00h
-	st r9, r8, r0
 	
 	ldh r8, #random_x
 	ldl r8, #random_x
@@ -73,6 +67,14 @@ boot:
 	addi r0, #1
 	st r9, r8, r0
 	
+    ;interruption enabling should be the last thing before main
+    xor r0, r0, r0
+    ldh r8, #80h
+	ldl r8, #12h			; sets PIC interruption mask
+	ldh r9, #00h			
+	ldl r9, #F0h
+	st r9, r8, r0
+    
     jmpd #BubbleSort
 ;end boot
 
@@ -99,16 +101,16 @@ ISR:
     xor r0, r0, r0
     ldh r8, #80h
 	ldl r8, #10h
-	ld r9, r8, r0			; reads interruption number
+	ld r10, r8, r0			; reads interruption number
 	ldh r8, #irq_handlers
 	ldl r8, #irq_handlers
-	add r8, r9, r8
+	add r8, r10, r8
     ld r8, r8, r0
 	jsr r8					; jumps to appropriate handler 
 	xor r0, r0, r0 
 	ldh r8, #80h
 	ldl r8, #11h
-	st r0, r8, r0
+	st r10, r8, r0
 	
     end_interruption_handler:
     popf
@@ -455,7 +457,8 @@ decrypt_and_store:
 	ldl r5, #100
 	mul r5, r2
 	mfl r5
-	add r13, r13, r5 	; r13 <- &msg 
+	add r13, r13, r5 	; r13 <- &msgN 
+    add r13, r13, r10   ; r13 <- &msgN[index/2]
 	ld r14, r13, r7 	; msg[index/2]
 	
 	addi r6, #0
@@ -552,7 +555,7 @@ end:
 	size:      		db #50    ; 'array' size  
 	random_x:   	db #250, #250, #250, #250 	 ; first random number b to calculate crypto key; is decremented each exchange
 	crypto_key:	 	db #0, #0, #0, #0
-	index:			db #0, #0, #0, #0
+	index:			db #0, #00, #00, #00
 	msg0: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 	msg1: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 	msg2: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
