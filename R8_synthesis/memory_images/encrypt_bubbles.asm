@@ -221,7 +221,7 @@ crypto_message_handler:
 	ldh r11, #00h
 	ldl r11, #01h		; data_av mask (must save between calls!!)
 	ldh r12, #00h
-	ldl r12, #03h		; eof mask (must save between calls!!)
+	ldl r12, #02h		; eof mask (must save between calls!!)
     pooling:
 		add r1, r15, r0
 		jsrd #read_signals		; read_signals(crypto_id)
@@ -272,6 +272,9 @@ read_crypto:
     ldl r6, #02h            ; r6 <- PortA Data address
 	st r7, r6, r0			; writes id or op in regData to allow signals to be input
 	ld r3, r6, r0	 		; r3 <- portData
+    ldh r5, #00h
+    ldl r5, #ffh
+    and r3, r3, r5          ; mask to read only data
 	rts
 ;end read_crypto
 
@@ -295,7 +298,11 @@ read_crypto_ack:
     ldl r6, #02h            ; r6 <- PortA Data address
 	st r7, r6, r0			; writes id | op in regData to allow signals to be input and ack signal to be set     
 	ld r3, r6, r0	 		; r3 <- portData
-	st r0, r6, r0			; clears ack pulse
+    ldh r5, #00h
+    ldl r5, #ffh
+    and r3, r3, r5          ; mask to read only data
+    
+    st r0, r6, r0			; clears ack pulse
 	rts
 ;end read_crypto_ack
 
@@ -320,6 +327,9 @@ read_signals:
 	st r7, r6, r0			; writes id | op in regData to allow signals to be input
 	     
 	ld r3, r6, r0	 		; r3 <- signals
+    ldh r5, #00h
+    ldl r5, #ffh
+    and r3, r3, r5          ; mask to read only data
 	rts
 ;end read_signals
 
@@ -328,7 +338,6 @@ write_crypto:
 ; Objective: writes to data_in bus of cryptomessage and activates ack PULSE
 ; Argument: r1 <- data to be written, r2 <- cripto_id (ALREADY SHIFTED TO BITS 11:10)
 ; Return: NULL
-	xor r0, r0, r0
 	ldh r6, #03h
 	ldl r6, #00h			; write crypto op is 11
 	or r7, r6, r2 			; r7 <- id | op 
@@ -336,11 +345,15 @@ write_crypto:
     ldh r6, #80h            ;
     ldl r6, #01h            ; r6 <- PortA regConfig address
 	ldh r5, #F0h
-	ldl r5, #FFh
+	ldl r5, #00h            ;output
 	st r5, r6, r0			; Sets regConfig so portData sends data to cryptomessage
 	
 	ldh r6, #80h            ;
     ldl r6, #02h            ; r6 <- PortA Data address
+    xor r0, r0, r0
+    ldh r5, #00h
+    ldl r5, #ffh
+    and r1, r1, r5          ; cleans upper byte of data to be written
     or r7, r7, r1
 	st r7, r6, r0			; portData sends id | op | r1(7 downto 0) setting ack = '1'
 	
