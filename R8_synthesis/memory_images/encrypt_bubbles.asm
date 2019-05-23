@@ -349,16 +349,22 @@ write_crypto:
 	ldl r5, #00h            ;output
 	st r5, r6, r0			; Sets regConfig so portData sends data to cryptomessage
 	
-	ldh r6, #80h            ;
-    ldl r6, #02h            ; r6 <- PortA Data address
-    
+	ldh r8, #80h            ;
+    ldl r8, #02h            ; r6 <- PortA Data address
+    xor r0, r0, r0
     ldh r5, #00h
     ldl r5, #ffh
     and r1, r1, r5          ; cleans upper byte of data to be written
     or r7, r7, r1
-	st r7, r6, r0			; portData sends id | op | r1(7 downto 0) setting ack = '1'
+	st r7, r8, r0			; portData sends id | op | r1(7 downto 0) setting ack = '1'
 	
-	st r0, r6, r0			; disables ack
+	ldh r6, #80h            ;
+    ldl r6, #01h            ; r6 <- PortA regConfig address
+	ldh r5, #F0h
+	ldl r5, #FFh
+	st r5, r6, r0			; changes portA to input
+	
+	st r0, r8, r0			; disables ack and changes op to 00
 	
 	rts
 ;end write_crypto
@@ -456,9 +462,6 @@ decrypt_and_store:
 	ldl r5, #index
 	add r5, r5, r2
 	ld r10, r5, r0			; r10 <- index
-    add r8, r10, r0         ; r8 <- index
-    addi r8, #1             ;
-    st r8, r5, r0           ; index++
 	ldh r5, #0
 	ldl r5, #2 
 	div r10, r5 			; index/2  = adress offset  | index % 2 = lower or upper byte
@@ -472,8 +475,7 @@ decrypt_and_store:
 	mul r5, r2
 	mfl r5
 	add r13, r13, r5 	; r13 <- &msgN 
-    ;add r13, r13, r10   ; r13 <- &msgN[index/2]
-	ld r14, r13, r7 	; msgN[index/2]
+	ld r14, r13, r7 	; msg[index/2]
 	
 	addi r6, #0
 	jmpzd #upper_byte_ds
@@ -488,10 +490,16 @@ decrypt_and_store:
 		sl0 r12, r12
 		sl0 r12, r12
 		sl0 r12, r12
-		sl0 r12, r12			;shifts to upper byte
+		sl0 r12, r12			; shifts to upper byte
 		st r12, r13, r7			; stores upper byte
 		
 	end_ds:
+	
+    addi r10, #1             ;
+	ldh r5, #index
+	ldl r5, #index
+    st r10, r5, r0           ; index++
+	
 	pop r14
 	pop r13
 	pop r12
