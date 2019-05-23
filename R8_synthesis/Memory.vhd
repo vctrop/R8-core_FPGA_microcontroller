@@ -30,7 +30,8 @@ end Memory;
 
 architecture BlockRAM of Memory is
     
-    type RamType is array (0 to (2**ADDR_WIDTH)-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
+    --type RamType is array (0 to (2**ADDR_WIDTH)-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
+    type RamType is array (0 to 4096-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
     
     impure function InitRamFromFile (RamFileName : in string) return RamType is
         --FILE RamFile : text is in RamFileName;
