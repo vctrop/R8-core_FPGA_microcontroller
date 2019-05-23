@@ -39,7 +39,7 @@ begin
 		
 	Crypto0:	entity work.CryptoMessage
     generic map(
-        MSG_INTERVAL    => 80000,					--mudar talvez!
+        MSG_INTERVAL    => 5000,					--mudar talvez!
         FILE_NAME       => "message/empire.txt"
     )
     port map( 
@@ -55,7 +55,7 @@ begin
 	
 	Crypto1:	entity work.CryptoMessage
     generic map(
-        MSG_INTERVAL    => 80000,					--mudar talvez!
+        MSG_INTERVAL    => 5000,					--mudar talvez!
         FILE_NAME       => "message/DoctorRockter.txt"
     )
     port map( 
@@ -71,7 +71,7 @@ begin
 	
 	Crypto2:	entity work.CryptoMessage
     generic map(
-        MSG_INTERVAL    => 80000,					--mudar talvez!
+        MSG_INTERVAL    => 5000,					--mudar talvez!
         FILE_NAME       => "message/RevolutionCalling.txt"
     )
     port map( 
@@ -87,7 +87,7 @@ begin
 	
 	Crypto3:	entity work.CryptoMessage
     generic map(
-        MSG_INTERVAL    => 80000,					--mudar talvez!
+        MSG_INTERVAL    => 5000,					--mudar talvez!
         FILE_NAME       => "message/AllAlongTheWatchTower.txt"
     )
     port map( 

@@ -342,6 +342,7 @@ write_crypto:
 	ldl r6, #00h			; write crypto op is 11
 	or r7, r6, r2 			; r7 <- id | op 
 	
+    xor r0, r0, r0
     ldh r6, #80h            ;
     ldl r6, #01h            ; r6 <- PortA regConfig address
 	ldh r5, #F0h
@@ -350,7 +351,7 @@ write_crypto:
 	
 	ldh r6, #80h            ;
     ldl r6, #02h            ; r6 <- PortA Data address
-    xor r0, r0, r0
+    
     ldh r5, #00h
     ldl r5, #ffh
     and r1, r1, r5          ; cleans upper byte of data to be written
@@ -471,8 +472,8 @@ decrypt_and_store:
 	mul r5, r2
 	mfl r5
 	add r13, r13, r5 	; r13 <- &msgN 
-    add r13, r13, r10   ; r13 <- &msgN[index/2]
-	ld r14, r13, r7 	; msg[index/2]
+    ;add r13, r13, r10   ; r13 <- &msgN[index/2]
+	ld r14, r13, r7 	; msgN[index/2]
 	
 	addi r6, #0
 	jmpzd #upper_byte_ds
