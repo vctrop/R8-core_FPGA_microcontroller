@@ -240,6 +240,53 @@ crypto_message_handler:
 		and r7, r10, r12 		; check if this was the oef
 		jmpzd #pooling			; if(!eof), else end key exchange
     end_of_message:
+
+	;clear the rest of the buffer
+	xor r0, r0, r0
+	ldh r5, #index 
+	ldl r5, #index 
+	add r5, r5, r14
+	ld r5, r5, r0		; r5 <- index
+	ldh r7, #0
+	ldl r7, #200
+	sub r8, r7, r5 		; if(index > 200) return 
+	jmpnd #buffer_clear
+
+	ldh r6, #msg0
+	ldl r6, #msg0 
+	ldh r7, #0
+	ldl r7, #100
+	mul r7, r14
+	mfl r7
+	add r6, r6, r7		; r6 <- &msgN
+
+	ldh r7, #0
+	ldl r7, #2
+	div r5, r7 			; checks if index is odd
+	mfh r7
+	mfl r9				; r9 <- index / 2
+	addi r7, #0
+	jmpzd #loop_even
+	ld r8, r6, r9		; r8 <- msgN[index/2] 
+	ldh r7, #FFh
+	ldl r7, #0
+	and r8, r8, r7 		; clears lower byte 
+	st r8, r6, r9 		; write in msgN[index/2]
+	addi r9, #1
+	jmpd #loop_setup
+	loop_even:
+		;subi r9, #1
+	loop_setup:
+		ldh r7, #0
+		ldl r7, #99
+	
+	loop_condition:
+		sub r5, r7, r9		;  i < 100
+		jmpnd #buffer_clear
+		st r0, r6, r9
+		addi r9, #1
+		jmpd #loop_condition
+	buffer_clear:
 	pop r15
 	pop r14
 	pop r12
@@ -498,7 +545,7 @@ decrypt_and_store:
     addi r10, #1             ;
 	ldh r5, #index
 	ldl r5, #index
-    st r10, r5, r0           ; index++
+    st r10, r5, r2           ; index[crypto_number]++
 	
 	pop r14
 	pop r13
@@ -564,12 +611,14 @@ swap:
     jmpd #continue
     
     
-end:    
-    halt                    ; Suspend the execution
+end: 
+	jmpd #end				; lets the calling end
+    ;halt                    ; Suspend the execution
              
 .endcode
 
-; Data area (variables)
+
+; Data area (variables)
 .org #1000
 .data
 	irq_handlers: 	db #0, #0, #0, #0, #0, #0, #0, #0
@@ -577,7 +626,7 @@ end:
 	size:      		db #50    ; 'array' size  
 	random_x:   	db #250, #250, #250, #250 	 ; first random number b to calculate crypto key; is decremented each exchange
 	crypto_key:	 	db #0, #0, #0, #0
-	index:			db #0, #00, #00, #00
+	index:			db #0, #0, #0, #0
 	msg0: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 	msg1: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 	msg2: 	   		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
