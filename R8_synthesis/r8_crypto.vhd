@@ -11,11 +11,12 @@ end R8_crypto;
 
 architecture structural of r8_crypto is
 	signal port_io	: std_logic_vector(15 downto 0);
-	signal data_mux, data_in, data_out0, data_out1, data_out2, data_out3 : std_logic_vector(7 downto 0);
+	signal data_mux, data_in, data_out0, data_out1, data_out2, data_out3, data_out_RX : std_logic_vector(7 downto 0);
 	signal ack0, ack1, ack2, ack3 : std_logic;
 	signal eom0, eom1, eom2, eom3 : std_logic;
 	signal data_av0, data_av1, data_av2, data_av3 : std_logic;
-	
+	signal data_av_RX, tx : std_logic;
+		
 	
 	alias key_exg3 		is port_io(15);		--input		
 	alias key_exg2 		is port_io(14);		--input
@@ -25,6 +26,7 @@ architecture structural of r8_crypto is
 	alias ack 			is port_io(9);					--output
 	alias op			is port_io(9 downto 8);			--output
 	alias crypto_io		is port_io(7 downto 0);			--input/output
+	
 	--portA config is 0xF0XX
 	--portA intrConfig is 0xF000
 	--PIC_mask config is 0xF000 
@@ -34,7 +36,8 @@ begin
         port map (
             board_clock     => clk_r8,
             board_rst       => rst,
-            port_io         => port_io
+            port_io         => port_io,
+	    tx => tx
         );
 		
 	Crypto0:	entity work.CryptoMessage
@@ -100,6 +103,19 @@ begin
         keyExchange => key_exg3,
         eom         => eom3
     );
+	
+		
+	RX		: entity work.UART_RX
+	generic map(
+		RATE_FREQ_BAUD => 25000000/9600
+	)
+	port map(
+		clk => clk_r8,
+		rst => rst,
+		rx  => tx,
+		data_out => data_out_RX,
+		data_av => data_av_RX
+	);
 	
 	--op = "00" indica leitura de sinais de data_av e eom 
 	--op = "01" indica leitura de DADOS do crypto sem mandar sinal de ack 
