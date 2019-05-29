@@ -107,7 +107,7 @@ begin
 		
 	RX		: entity work.UART_RX
 	generic map(
-		RATE_FREQ_BAUD => 25000000/115200
+		RATE_FREQ_BAUD => 25000000/921600
 	)
 	port map(
 		clk => clk_r8,

@@ -26,6 +26,7 @@ add wave -noupdate -divider Rx
 add wave -noupdate /r8_crypto_tb/r8_crypto/RX/rx_data
 add wave -noupdate /r8_crypto_tb/r8_crypto/RX/data_av
 add wave -noupdate /r8_crypto_tb/r8_crypto/RX/rx
+add wave -noupdate /r8_crypto_tb/r8_crypto/RX/clk
 add wave -noupdate -divider Tx
 add wave -noupdate /r8_crypto_tb/r8_crypto/R8_uC/UART_TX/clk
 add wave -noupdate /r8_crypto_tb/r8_crypto/R8_uC/UART_TX/tx
@@ -35,7 +36,7 @@ add wave -noupdate /r8_crypto_tb/r8_crypto/R8_uC/UART_TX/data_in
 add wave -noupdate /r8_crypto_tb/r8_crypto/R8_uC/UART_TX/tx_data
 add wave -noupdate /r8_crypto_tb/r8_crypto/R8_uC/UART_TX/currentState
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {14970000 ps} 0}
+WaveRestoreCursors {{Cursor 1} {39553645 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
@@ -51,4 +52,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {99501927 ps} {100026215 ps}
+WaveRestoreZoom {39501927 ps} {40026215 ps}

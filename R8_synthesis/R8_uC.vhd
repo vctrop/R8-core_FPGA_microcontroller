@@ -98,10 +98,10 @@ begin
     
     UART_TX : entity work.UART_TX
     generic map(
-        RATE_FREQ_BAUD  =>  25000000/115200 --2605  -- ceil(25 Mhz/9600 bps)
+        RATE_FREQ_BAUD  =>  25000000/921600 
     )
     port map(
-        clk         => clk,
+        clk         => board_clock,
         rst         => rst,
         data_in     => data_TX,
         data_av     => TX_av,
