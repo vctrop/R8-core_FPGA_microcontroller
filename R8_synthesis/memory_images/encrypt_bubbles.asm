@@ -555,7 +555,75 @@ decrypt_and_store:
 	rts
 ;end decrypt_and_store
 	
+
+integer_to_string:
+; Objective: converts an 16 bit signed integer number to a string
+; Argument: r1 <- n
+; Return: r3 <- &string 
+	push r10
+	push r11
+	push r12 
+	ldh r9, #0
+	ldl r9, #2bh			; sign is '+'
+	ldh r10, #string
+	ldl r10, #string
+	ldh r11, #0
+	ldl r11, #0 			; r11 is size
+	ldh r12, #0
+	ldl r12, #10			; 10 constant
+	ldh r13, #0
+	ldl r13, #48			; 48 constant ( '0' ascii caracter code)
 	
+	xor r0, r0, r0
+	add r3, r0, r10 		; r3 <- &string
+	
+	addi r1, #0
+	jmpnd #negative_sign
+	jmpzd #zero_is
+	jmpd #loop_is
+	;if n is zero, write only '0' + '\0' 
+	zero_is:
+		st r13, r10, r0		; write '0' on first byte
+		addi r10, #1
+		st r0, r10, r0		; write '\0' on last byte
+		jmpd #return_is
+		
+	negative_sign:
+		not r1, r1
+		addi r1, #1			; convert number to positive
+		addi r9, #2			; sign receives '-'
+	
+	loop_is:
+		div r1, r12
+		mfh r5				; r5 <- n % 10
+		add r6, r5, r13 	; r6 <- '0' + n % 10
+		push r6 			; store character on stack
+		addi r11, #1		; size++
+		mfl r1				; r1 <- n / 10
+		addi r1, #0			; if(n == 0) break
+		jmpzd #write_is
+		jmpd #loop_is
+	
+	write_is:
+		st r9, r10, r0 		;write sign in string[0] 
+		addi r10, #1
+		write_loop_is:
+			pop r6 
+			st r6, r10, r0		; write string
+			addi r10, #1 
+			subi r11, #1		; if (size == 0) break
+			jmpzd #write_terminator
+			jmpd #write_loop_is
+	write_terminator:
+		st r0, r10, r0			; write '\0' 
+	return_is:
+	pop r12
+	pop r11
+	pop r10
+	rts
+;end integer_to_string
+
+
 BubbleSort:
    
     ; Initialization code

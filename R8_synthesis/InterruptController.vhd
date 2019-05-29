@@ -61,7 +61,7 @@ begin
                 
             -- IRQ reset (on processor acknowledgement)
             if address = INT_ACK_ADDR and ce = '1' and wr = '1' then
-                irq_reg(TO_INTEGER(UNSIGNED(data))) <= '0';
+                irq_reg(TO_INTEGER(UNSIGNED(data(2 downto 0)))) <= '0';
             end if;
         
         end if;

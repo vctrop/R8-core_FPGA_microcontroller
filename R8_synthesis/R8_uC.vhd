@@ -21,7 +21,7 @@ end R8_uC;
 architecture structural of R8_uC is
     
       signal clk, clk_mem, clk_div4 : std_logic;
-      signal rw, ce, rst, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, TX_av, TX_ready : std_logic;
+      signal rw, ce, rst, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, ce_TX, TX_av, TX_ready : std_logic;
       signal R8_out, R8_in, addressR8, mem_out, data_portA, irq : std_logic_vector(15 downto 0);
       signal data_PIC, PIC_irq, data_TX : std_logic_vector(7 downto 0);
       alias address_peripherals is addressR8(7 downto 4);
@@ -45,7 +45,7 @@ begin
         generic map (
             DATA_WIDTH  => 16,       
             ADDR_WIDTH  => 15,         
-            IMAGE       => "memory_images/encrypt_bubbles_BRAM.txt"    
+            IMAGE       => "memory_images/int_to_str_BRAM.txt"    
             )
         port map(  
             clk         => clk_mem,
@@ -98,7 +98,7 @@ begin
     
     UART_TX : entity work.UART_TX
     generic map(
-        RATE_FREQ_BAUD  =>  25000000/9600 --2605  -- ceil(25 Mhz/9600 bps)
+        RATE_FREQ_BAUD  =>  25000000/115200 --2605  -- ceil(25 Mhz/9600 bps)
     )
     port map(
         clk         => clk,
@@ -140,7 +140,7 @@ begin
           
     R8_in <=    data_portA                      when rw = '1' and ce_portA  = '1' else 
                 x"00" & data_PIC                when rw = '1' and ce_PIC    = '1' else 
-                (0 => TX_ready, others => '0')  when rw = '1' and TX_av     = '1' else 
+                (0 => TX_ready, others => '0')  when rw = '1' and ce_TX     = '1' else 
                 mem_out;
 
     --memory clock is inverted to work at falling edge borders of the R8 clock
@@ -152,7 +152,9 @@ begin
     ce_io       <= '1' when ce = '1' and addressR8(15) = '1' else '0';
     ce_portA    <= '1' when ce_io = '1' and address_peripherals = x"0" else '0';
     ce_PIC      <= '1' when ce_io = '1' and address_peripherals = x"1" else '0';
-    TX_av       <= '1' when ce_io = '1' and address_peripherals = x"2" else '0';
+    ce_TX       <= '1' when ce_io = '1' and address_peripherals = x"2" else '0';
     
+	--Tx interface 
+	TX_av <= '1' when ce_TX = '1' and rw = '0' else '0';
 
 end structural;
