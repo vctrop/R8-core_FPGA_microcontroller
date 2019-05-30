@@ -7,24 +7,25 @@ boot:
 	
 ;-------------------------------------------------------
 integer_to_string:
-; Objective: converts an 16 bit signed integer number to a string
-; Argument: r1 <- n
+; Objective: converts an 16 bit signed integer to ascii, storing the result in &string 
+; Argument: r1 <- n, r2 <- &string
 ; Return: &string on success, 0 on failure.
 	push r10
 	push r11
 	push r12 
+    push r13
+    
+    xor r0, r0, r0
 	ldh r9, #0
 	ldl r9, #2bh			; sign is '+'
-	ldh r10, #string
-	ldl r10, #string
-	ldh r11, #0
+	add r10, r2, r0
+    ldh r11, #0
 	ldl r11, #0 			; r11 is size
 	ldh r12, #0
 	ldl r12, #10			; 10 constant
 	ldh r13, #0
-	ldl r13, #48			; 48 constant ( '0' ascii caracter code)
+	ldl r13, #48			; 48 constant ('0' ascii caracter code)
 	
-	xor r0, r0, r0
 	add r3, r0, r10 		; r3 <- &string
 	
 	addi r1, #0
@@ -67,10 +68,13 @@ integer_to_string:
 	write_terminator:
 		st r0, r10, r0			; write '\0' 
 	return_is:
-	pop r12
+	
+    pop r13
+    pop r12
 	pop r11
 	pop r10
 	rts
+; end integer_to_string
 ;-------------------------------------------------------
 
 ;-----------------
@@ -83,7 +87,7 @@ print_string:
 	ldh r9, #80h
 	ldl r9, #20h		; r9 <- TX address
 	loop_ps:
-		ld r5, r1, r6		; load string[r6]
+		ld r5, r1, r6		; r5 <- string[r6]
 		addi r5, #0			; check for null termination
 		jmpzd #return_ps
 		wait_for_ready_signal_ps:		
@@ -107,8 +111,11 @@ main:
 	ldh r12, #0
 	ldl r12, #12
 	
+    xor r0, r0, r0
 	xor r1, r1, r1
-	addi r1, #250
+	subi r1, #250
+    ldh r2, #string
+    ldl r2, #string
 	jsrd #integer_to_string
 	; xor r1, r1, r1
 	; jsrd #integer_to_string
@@ -121,8 +128,7 @@ main:
 	; ldh r1, #ffh
 	; ldl r1, #06h
 	; jsrd #integer_to_string
-	ldh r1, #string
-	ldl r1, #string
+	add r1, r2, r0
 	jsrd #print_string
 	halt
 	

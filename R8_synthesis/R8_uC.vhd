@@ -45,7 +45,7 @@ begin
         generic map (
             DATA_WIDTH  => 16,       
             ADDR_WIDTH  => 15,         
-            IMAGE       => "memory_images/int_to_str_BRAM.txt"    
+            IMAGE       => "memory_images/string_BRAM.txt"    
             )
         port map(  
             clk         => clk_mem,
