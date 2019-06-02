@@ -54,11 +54,12 @@ architecture behavioral of R8 is
     type Instruction is ( 
         ADD, SUB, AAND, OOR, XXOR, ADDI, SUBI, NOT_A, 
         SL0, SL1, SR0, SR1,
-        LDL, LDH, LD, ST, LDSP, LDISRA, POP, PUSH, POPF, PUSHF,
+        LDL, LDH, LD, ST, LDSP, LDISRA, LDTSRA,  POP, PUSH, POPF, PUSHF,
         JUMP_R, JUMP_A, JUMP_D, JSRR, JSR, JSRD,
-        NOP, HALT,  RTS, RTI, JMP_ISR, DIV, MUL, MFH, MFL
+        NOP, HALT,  RTS, RTI, JMP_ISR, DIV, MUL, MFH, MFL, MFC, SWI
     );
-    type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, Spop, Spush, Spushf, Spopf, Srti, Sintr, Smfh, Smfl, Smul, Sdiv, Sldisra);
+    type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, 
+    Spop, Spush, Spushf, Spopf, Srti, Sintr, Smfh, Smfl, Smul, Sdiv, Sldisra, Sldtsra, Smfc);
     type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
     
     -- instruction type signal to facilitate boolean operations
@@ -73,7 +74,8 @@ architecture behavioral of R8 is
     -- Basic registers
     signal regPC    : std_logic_vector(15 downto 0);
     signal regSP    : std_logic_vector(15 downto 0);
-    signal regISRA  : std_logic_vector(15 downto 0);
+    signal regISRA  : std_logic_vector(15 downto 0);    --interruption subroutine address
+    signal regTSRA  : std_logic_vector(15 downto 0);    --trap subroutine address
     signal regALU   : std_logic_vector(15 downto 0);
     signal regIR    : std_logic_vector(15 downto 0);
     signal regA     : std_logic_vector(15 downto 0);
@@ -128,8 +130,16 @@ architecture behavioral of R8 is
     --      2: The target register is ALSO source
     signal instructionFormat1, instructionFormat2: boolean;
     
-    --Flag to check if the processor is currently handling an interruption
-    signal InterruptionStatus  : std_logic;       
+    --Flag to check if the processor is currently handling an interruption or trap
+    signal InterruptionStatus  : std_logic; 
+    signal TrapStatus          : std_logic;
+    
+    --trap cause register
+    --1: Invalid instruction
+    --8: SYSCALL/ SWI
+    --12: Signed overflow
+    --15: Division by zero
+    signal regCause : std_logic_vector(15 downto 0);
 
 begin
     -- Instruction decoding
@@ -152,6 +162,7 @@ begin
                             HALT    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"6" else
                             LDSP    when regIR(15 downto 8) = x"B0" and regIR(3 downto 0) = x"7" else
                             LDISRA  when regIR(15 downto 8) = x"B1" and regIR(3 downto 0) = x"7" else
+                            LDTSRA  when regIR(15 downto 8) = x"B2" and regIR(3 downto 0) = x"7" else
                             
                             PUSH    when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"A" else 
                             POP     when regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"9" else
@@ -166,9 +177,10 @@ begin
                             
                             MFH     when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"3B" else
                             MFL     when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"4B" else
-
+                            MFC     when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"5B" else
                             -- -- Jump instructions (18). 
                             -- -- Here the status flags are tested to jump or not
+                            --TODO: DECODE FAILED JUMPS AS SOMETHING ELSE FROM NOp AND DO IT EXPLICITLY!! 
                             JUMP_R  when regIR(15 downto 8) = x"C0" and (
                                      regIR(3 downto 0) = x"0" or                           -- JMPR
                                     (regIR(3 downto 0) = x"1" and negativeFlag = '1') or   -- JMPNR
@@ -197,7 +209,9 @@ begin
                             MUL     when regIR(15 downto 8) = x"C1" else
                             DIV     when regIR(15 downto 8) = x"C2" else
                             
+                            SWI     when regIR = x"B0EB" else                                      --software kernel trap / software interrupt
                             JMP_ISR when regIR = x"B0FB" else                                      --reserved for interruption handler jump
+                            --TODO: add unknown instruction to set cause register to 15
                             NOP;
 
     -- The target register is not source
@@ -213,7 +227,8 @@ begin
             registerFile    <= (others => (others=>'0'));	
             regPC           <= (others => '0');
             regSP           <= x"7FFF";                     -- conventional stack start adress
-            regISRA         <= x"0040";                     -- conventional ISR start address
+            regISRA         <= x"0000";                     
+            regTSRA         <= x"0040";
             regALU          <= (others => '0');
             regIR           <= (others => '0');
             regA            <= (others => '0');
@@ -221,6 +236,8 @@ begin
             regHigh         <= (others => '0');
             regLow          <= (others => '0');
             regFlags        <= (others => '0');
+            regCause        <= (others => '0');
+            TrapStatus         <= '0';
             InterruptionStatus <= '0';
             
         elsif rising_edge(clk) then    
@@ -253,6 +270,8 @@ begin
 						currentState <= Smfh;
 					elsif decodedInstruction = MFL then
 						currentState <= Smfl;
+                    elsif decodedInstruction = MFC then
+						currentState <= Smfc;
                     else
                        currentState <= Salu;
                     end if;
@@ -308,6 +327,9 @@ begin
                         
                     elsif decodedInstruction = LDISRA then   
                         currentState <= Sldisra;
+                        
+                    elsif decodedInstruction = LDTSRA then   
+                        currentState <= Sldtsra;
 
                     else                                -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
                         currentState <= Sfetch;   
@@ -383,6 +405,10 @@ begin
                     negativeFlag <= low_N;
                     zeroFlag <= low_Z;
                     
+                when Smfc =>
+                    registerFile(RGT) <= regCause;
+                    currentState <= Sfetch;
+                    
                 when Smul =>
                     regHigh <= mulResult(31 downto 16);
                     regLow  <= mulResult(15 downto 0);
@@ -397,6 +423,10 @@ begin
                     
                 when Sldisra =>
                     regISRA <= regALU;
+                    currentState <= Sfetch;
+                    
+                when Sldtsra =>
+                    regTSRA <= regALU;
                     currentState <= Sfetch;
                     
                 when others  =>

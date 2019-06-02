@@ -148,7 +148,7 @@ integer_to_hexstring:
 		st r6, r10, r0
 		addi r10, #1
 		
-	;second caracter
+	;second character
 	ldh r5, #0
 	ldl r5, #8			; 12 constant	
 	ldh r7, #00h

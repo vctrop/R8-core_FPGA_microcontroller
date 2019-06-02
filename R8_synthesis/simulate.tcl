@@ -1,2 +1,2 @@
-vsim -gui -t ps work.r8_crypto_tb
+vsim -gui -t ps work.r8_uc_tb
 do wave.do
