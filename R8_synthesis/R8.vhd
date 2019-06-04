@@ -56,10 +56,10 @@ architecture behavioral of R8 is
         SL0, SL1, SR0, SR1,
         LDL, LDH, LD, ST, LDSP, LDISRA, LDTSRA,  POP, PUSH, POPF, PUSHF,
         JUMP_R, JUMP_A, JUMP_D, JSRR, JSR, JSRD,
-        NOP, HALT,  RTS, RTI, JMP_ISR, DIV, MUL, MFH, MFL, MFC, SWI
+        NOP, HALT,  RTS, RTI, JMP_ISR, JMP_TSR, DIV, MUL, MFH, MFL, MFC, SWI, INVALID
     );
     type State is (Sidle, Sfetch, Sreg, Shalt, Salu, Srts, Sldsp, Sld, Sst, Swbk, Sjmp, Ssbrt, 
-    Spop, Spush, Spushf, Spopf, Srti, Sintr, Smfh, Smfl, Smul, Sdiv, Sldisra, Sldtsra, Smfc);
+    Spop, Spush, Spushf, Spopf, Srti, Sintr, Smfh, Smfl, Smul, Sdiv, Sldisra, Sldtsra, Smfc, Strap);
     type RegisterArray is array (natural range <>) of std_logic_vector(15 downto 0);
     
     -- instruction type signal to facilitate boolean operations
@@ -139,8 +139,9 @@ architecture behavioral of R8 is
     --8: SYSCALL/ SWI
     --12: Signed overflow
     --15: Division by zero
-    signal regCause : std_logic_vector(15 downto 0);
-
+    signal regCause : std_logic_vector(7 downto 0);
+	signal TrapSignal : std_logic;	--signal that is set on the event of a trap. set back to 0 once the processor executes JMP_TSR pseudo instruction
+	
 begin
     -- Instruction decoding
     decodedInstruction <=   ADD     when regIR(15 downto 12) = x"0" else                               
@@ -179,8 +180,7 @@ begin
                             MFL     when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"4B" else
                             MFC     when regIR(15 downto 12) = x"B" and regIR(7 downto 0) = x"5B" else
                             -- -- Jump instructions (18). 
-                            -- -- Here the status flags are tested to jump or not
-                            --TODO: DECODE FAILED JUMPS AS SOMETHING ELSE FROM NOp AND DO IT EXPLICITLY!! 
+                            -- -- Here the status flags are tested to jump or not 
                             JUMP_R  when regIR(15 downto 8) = x"C0" and (
                                      regIR(3 downto 0) = x"0" or                           -- JMPR
                                     (regIR(3 downto 0) = x"1" and negativeFlag = '1') or   -- JMPNR
@@ -188,7 +188,7 @@ begin
                                     (regIR(3 downto 0) = x"3" and carryFlag = '1') or      -- JMPCR
                                     (regIR(3 downto 0) = x"4" and overflowFlag = '1')      -- JMPVR
                                     ) else 
-
+					
                             JUMP_A  when regIR(15 downto 8) = x"C0" and (
                                      regIR(3 downto 0) = x"5" or                           -- JMP
                                     (regIR(3 downto 0) = x"6" and negativeFlag = '1') or   -- JMPN
@@ -205,14 +205,19 @@ begin
                                             (regIR(11 downto 10) = "11" and overflowFlag = '1')    -- JMPVD
                                         )   
                                     )  else 
-                                    
+							
+							--failed jumps are decoded as NOP
+                            NOP  	when (regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"5") or 	-- NOP
+									regIR(15 downto 8) = x"C0" or regIR(15 downto 12) = x"E" 			-- Failed jump
+									else   									
+									
                             MUL     when regIR(15 downto 8) = x"C1" else
                             DIV     when regIR(15 downto 8) = x"C2" else
                             
                             SWI     when regIR = x"B0EB" else                                      --software kernel trap / software interrupt
+							JMP_TSR when regIR = x"B0DB" else									   --reserved for TRAP handler jump
                             JMP_ISR when regIR = x"B0FB" else                                      --reserved for interruption handler jump
-                            --TODO: add unknown instruction to set cause register to 15
-                            NOP;
+                            INVALID;
 
     -- The target register is not source
     instructionFormat1 <= true when decodedInstruction=ADD or decodedInstruction=SUB or decodedInstruction=AAND or decodedInstruction=OOR or decodedInstruction=XXOR or decodedInstruction=NOT_A or decodedInstruction=SL0 or decodedInstruction=SR0 or decodedInstruction=SL1 or decodedInstruction=SR1 else false;
@@ -227,7 +232,7 @@ begin
             registerFile    <= (others => (others=>'0'));	
             regPC           <= (others => '0');
             regSP           <= x"7FFF";                     -- conventional stack start adress
-            regISRA         <= x"0000";                     
+            regISRA         <= x"0040";          			-- conventional handler address           
             regTSRA         <= x"0040";
             regALU          <= (others => '0');
             regIR           <= (others => '0');
@@ -239,6 +244,7 @@ begin
             regCause        <= (others => '0');
             TrapStatus         <= '0';
             InterruptionStatus <= '0';
+			TrapSignal 		   <= '0';
             
         elsif rising_edge(clk) then    
             case currentState is
@@ -246,10 +252,15 @@ begin
                     currentState <= Sfetch;
            
                 when Sfetch =>
-                    if intr ='1' and InterruptionStatus = '0' then
+					if TrapSignal = '1' and TrapStatus = '0' then
+						regIR <= x"B0DB";										--JMP_TSR microinstruction 
+						currentState <= Strap;
+						TrapSignal <= '0';
+						TrapStatus <= '1';
+                    elsif intr ='1' and InterruptionStatus = '0' and TrapStatus = '0' then 
                         InterruptionStatus <= '1';
                         currentState <= Sintr; 
-                        regIR <= x"B0FB";                                       --JMP_ISR microinstruction   
+                        regIR <= x"B0FB";                                  			--JMP_ISR microinstruction   
                     else
 						regIR <= data_in;                                       -- regIR <= MEM[ADDRESS]
                         regPC <= std_logic_vector(unsigned(regPC)+1);           -- PC++
@@ -272,6 +283,14 @@ begin
 						currentState <= Smfl;
                     elsif decodedInstruction = MFC then
 						currentState <= Smfc;
+					elsif decodedInstruction = SWI then
+						TrapSignal <= '1';
+						regCause <= x"08";
+						currentState <= Sfetch;
+					elsif decodedInstruction = INVALID or decodedInstruction = JMP_TSR or decodedInstruction = JMP_ISR then -- if the processor decodes a JMP_TSR or JMP_ISR and reaches this state, it is an invalid instruction
+						TrapSignal <= '1';
+						regCause <= x"01";
+						currentState <= Sfetch;
                     else
                        currentState <= Salu;
                     end if;
@@ -330,7 +349,11 @@ begin
                         
                     elsif decodedInstruction = LDTSRA then   
                         currentState <= Sldtsra;
-
+					
+					elsif (decodedInstruction = ADD or decodedInstruction = ADDI or decodedInstruction = SUB or decodedInstruction = SUBI) and V = '1'  then
+						currentState <= Sfetch;
+						TrapSignal <= '1';
+						regCause <= x"0C";
                     else                                -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
                         currentState <= Sfetch;   
                     end if;
@@ -365,7 +388,11 @@ begin
                     currentState <= Sfetch;
                 
                 when Srti =>
-                    InterruptionStatus <= '0';                     --returns from interruption
+					if TrapStatus = '1' then						  -- if trap is being handled, clear trap status
+						TrapStatus <= '0';
+					else 
+						InterruptionStatus <= '0';                     -- if interruption is being handled, clear intr status
+					end if;
                     regPC <= data_in;
                     regSP <= regALU;
                     currentState <= Sfetch;
@@ -392,7 +419,12 @@ begin
                     regSP <= std_logic_vector(unsigned(regSP)-1);
                     regPC <= regISRA;
                     currentState <= Sfetch;
-
+				
+				when Strap =>
+                    regSP <= std_logic_vector(unsigned(regSP)-1);
+                    regPC <= regTSRA;
+                    currentState <= Sfetch;
+					
                 when Smfh =>
                     registerFile(RGT) <= regHigh;
                     currentState <= Sfetch;
@@ -406,7 +438,7 @@ begin
                     zeroFlag <= low_Z;
                     
                 when Smfc =>
-                    registerFile(RGT) <= regCause;
+                    registerFile(RGT) <= x"00" & regCause;
                     currentState <= Sfetch;
                     
                 when Smul =>
@@ -415,7 +447,10 @@ begin
                     currentState <= Sfetch;
                     
                 when Sdiv =>
-                    if regB /= x"0000" then                            
+                    if regB = x"0000" then  
+						TrapSignal <= '1';			-- zero division trap
+						regCause <= x"0F";
+					else
                         regHigh <= std_logic_vector(unsigned(regA) mod unsigned(regB));
                         regLow  <= std_logic_vector(signed(regA)  /  signed(regB));
                     end if;
@@ -428,7 +463,7 @@ begin
                 when Sldtsra =>
                     regTSRA <= regALU;
                     currentState <= Sfetch;
-                    
+					
                 when others  =>
                     currentState <= Shalt;              --HALT loops forever
                 
@@ -452,7 +487,7 @@ begin
                         regA;
                         
     opB(15 downto 0) <= regSP               when decodedInstruction = RTS or decodedInstruction = RTI or decodedInstruction = POP or decodedInstruction = POPF else
-                        regPC               when decodedInstruction = JUMP_R or decodedInstruction = JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  or decodedInstruction = JMP_ISR else
+                        regPC               when decodedInstruction = JUMP_R or decodedInstruction = JUMP_A or decodedInstruction=JUMP_D or decodedInstruction=JSRR or decodedInstruction=JSR or decodedInstruction=JSRD  or decodedInstruction = JMP_ISR or decodedInstruction = JMP_TSR else
                         (x"000" & regFlags) when decodedInstruction = PUSHF else
                         regB;
     
