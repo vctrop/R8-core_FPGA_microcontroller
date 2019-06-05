@@ -15,8 +15,8 @@ boot:
 	ldtsra r0
 	
 	; set exception handlers
-	ldh r8, #tsr_handler
-	ldl r8, #tsr_handler
+	ldh r8, #tsr_handlers
+	ldl r8, #tsr_handlers
 	ldh r9, #tsr_invalid_instruction
 	ldl r9, #tsr_invalid_instruction
 	ldh r0, #0
@@ -44,28 +44,28 @@ boot:
 
 	; set software interruption handlers
 	xor r0, r0, r0
-	ldh r8, #swi_handler
-	ldl r8, #swi_handler
+	ldh r8, #swi_handlers
+	ldl r8, #swi_handlers
 	ldh r9, #print_string
 	ldl r9, #print_string
 	st r9, r8, r0					; swi[0] = print_string
 	
 	addi r0, #1
-	ldh r8, #swi_handler
-	ldl r8, #swi_handler
+	ldh r8, #swi_handlers
+	ldl r8, #swi_handlers
 	ldh r9, #integer_to_string
 	ldl r9, #integer_to_string
 	st r9, r8, r0					; swi[1] = integer_to_string
 	
 	addi r0, #1
-	ldh r8, #swi_handler
-	ldl r8, #swi_handler
+	ldh r8, #swi_handlers
+	ldl r8, #swi_handlers
 	ldh r9, #integer_to_hexstring
 	ldl r9, #integer_to_hexstring
 	st r9, r8, r0					; swi[2] = integer_to_hexstring
 	
-    ;interruption enabling should be the last thing before main
-    ; no interruptions are enable for this application
+    ; interruption enabling should be the last thing before main
+    ; no interruptions are enabled for this application
     jmpd #main
 ;end boot
 
@@ -146,13 +146,13 @@ TSR:
     pushf
 	
     mfc	r5		; reads trap cause
-	ldh r8, #trs_handlers
-	ldl r8, #trs_handlers
+	ldh r8, #tsr_handlers
+	ldl r8, #tsr_handlers
     ld r8, r8, r5		; r8 <- handler address
 	jsr r8
 	
     popf
-	push r14
+	pop r14
     pop r13
     pop r12
     pop r11
@@ -193,17 +193,6 @@ tsr_invalid_instruction:
 	
 	rts
 ;end tsr_invalid_instruction
-
-tsr_swi:
-; Objective: jumps to handler based on value from r14, set before system call
-; Argument: r14 <- handler number, r1 <- first argument of called function, r2 <- second argument of called function
-; Return: NULL
-	ldh r5, #swi_handlers
-	ldl r5, #swi_handlers
-	ld r5, r14, r5
-	jsr r5
-	rts
-;end tsr_swi
 
 tsr_signed_overflow:
 ; Objective: prints error message with instruction address that caused trap
@@ -253,6 +242,16 @@ tsr_div_by_zero:
 	rts
 ;end tsr_div_by_zero
 
+tsr_swi:
+; Objective: jumps to handler based on value from r14, set before system call
+; Argument: r14 <- handler number, r1 <- first argument of called function, r2 <- second argument of called function
+; Return: NULL
+	ldh r5, #swi_handlers
+	ldl r5, #swi_handlers
+	ld r5, r14, r5
+	jsr r5
+	rts
+;end tsr_swi
 
 print_string:
 ; Objective: sends a NULL TERMINATED STRING to serial port
@@ -424,7 +423,8 @@ delay:
 		nop
 		jmpzd #delay_end
 		jmpd #delay_loop
-	delay_end
+	delay_end:
+    
 	rts
 ;end delay
 
@@ -554,7 +554,7 @@ main:
 		push r5	
 		jsrd #bubblesort		
 		
-		jsrd #delay	
+		;jsrd #delay	
 		
 		ldh r1, #array
 		ldl r1, #array
@@ -563,17 +563,17 @@ main:
 		ld r2, r8, r0
 		jsrd #print_array
 		
-		jsrd #delay
+		;jsrd #delay
 		
 		ldh r6, #7fh
 		ldl r6, #ffh
 		add r6, r6, r6		; overflow with add
 		
-		jsrd #delay
+		;jsrd #delay
 		
 		addi r6, #250		; overflow with addi
 		
-		jsrd #delay
+		;jsrd #delay
 		
 		ldh r7, #80h
 		ldl r7, #00h
@@ -597,7 +597,7 @@ main:
     ov_msg:				db #4fh, #76h, #65h, #72h, #66h, #6ch, #6fh, #77h, #20h, #6fh, #63h, #63h, #75h, #72h, #65h, #64h, #20h, #61h, #74h, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
 	div_zero_msg:		db #44h, #69h, #76h, #69h, #73h, #69h, #6fh, #6eh, #20h, #62h, #79h, #20h, #7ah, #65h, #72h, #6fh, #20h, #6fh, #63h, #63h, #75h, #72h, #65h, #64h, #20h, #6fh, #6eh, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
 		; temporary strings 
-	kernel_hex_string   db #0, #0, #0, #0, #0, #0, #0, #0
+	kernel_hex_string:   db #0, #0, #0, #0, #0, #0, #0, #0
 	carriage_return:    db #32, #0     
 	; USER MEMORY SPACE
 	; Bubble sort

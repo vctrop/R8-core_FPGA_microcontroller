@@ -28,10 +28,10 @@ begin
             tx              => tx
         );
         
-    --rx <= tx;
+    rx <= tx;
     
-    port_io(15) <= '0', '1' after 14 us;
-    port_io(14) <= '0';
+    --port_io(15) <= '0';
+    --port_io(14) <= '0';
     
     
     -- Generates the clock signal            
