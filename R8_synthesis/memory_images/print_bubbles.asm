@@ -222,8 +222,8 @@ tsr_div_by_zero:
 ; Objective: prints error message with instruction address that caused trap
 ; Argument: r15 <- instruction address
 ; Return: NULL
-	ldh r1, #ov_msg	
-	ldl r1, #ov_msg
+	ldh r1, #div_zero_msg	
+	ldl r1, #div_zero_msg
 	jsrd #print_string		; print error message
 	
 	xor r0, r0, r0
@@ -454,15 +454,30 @@ print_array:
         ldh r1, #string
         ldl r1, #string
         ldh r14, #0
-		ldl r14, #1
+		ldl r14, #0
 		swi 			; print_string
         
+		; print space after number
+		ldh r1, #space
+		ldl r1, #space
+		ldh r14, #0
+		ldl r14, #0
+		swi 			; print_string
+		
         addi r12, #1
         sub r6, r12, r11
         jmpzd #do_while_end
         jmpd #do_while_pa
-        
+	
     do_while_end:
+	
+	; print new line
+    ldh r1, #carriage_return
+	ldl r1, #carriage_return
+	ldh r14, #0
+	ldl r14, #0
+	swi 			; print_string
+	
     pop r15
     pop r14
     pop r13
@@ -529,13 +544,13 @@ swap_bs:
     ldl r4, #1              ; Set the element swaping (r4 <- 1)
     jmpd #continue_bs
 end_bs:
-    rts
+    halt
 ;end bubblesort
 
 
 main:
 	;prints unsorted array:
-	xor r5, r5, r5 ; order regirster
+	xor r10, r10, r10 ; order regirster
 	main_loop:
 		xor r0, r0, r0
 		ldh r1, #array
@@ -545,25 +560,16 @@ main:
 		ld r2, r8, r0
 		jsrd #print_array
 		
-		xor r0, r0, r0
-		ldh r1, #array
-		ldl r1, #array
-		ldh r8, #size
-		ldl r8, #size
-		ld r2, r8, r0
-		push r5	
-		jsrd #bubblesort		
+		; xor r0, r0, r0
+		; ldh r1, #array
+		; ldl r1, #array
+		; ldh r8, #size
+		; ldl r8, #size
+		; ld r2, r8, r0
+		; push r10	
+		; jsrd #bubblesort		
 		
 		;jsrd #delay	
-		
-		ldh r1, #array
-		ldl r1, #array
-		ldh r8, #size
-		ldl r8, #size
-		ld r2, r8, r0
-		jsrd #print_array
-		
-		;jsrd #delay
 		
 		ldh r6, #7fh
 		ldl r6, #ffh
@@ -579,14 +585,27 @@ main:
 		ldl r7, #00h
 		add r7, r7, r7	   ; overflow with sub
 		
+		;jsrd #delay
+		
 		addi r7, #1 	   ; overflow with subi 
 		
-		not r5, r5			; reverse sorting order
+		;jsrd #delay
+		
+		xor r7, r7, r7
+		div r7, r7 		   ; division by zero
+		
+		;jsrd #delay
+		
+		inv 			   ; invalid instruction
+		
+		;jsrd #delay
+		
+		not r10, r10			; reverse sorting order
 		jmpd #main_loop
 .endcode
 
 ; Data area (variables)
-.org #750
+.org #1000
 .data
     ; KERNEL MEMORY SPACE
 	irq_handlers: 	    db #0, #0, #0, #0, #0, #0, #0, #0
@@ -598,7 +617,8 @@ main:
 	div_zero_msg:		db #44h, #69h, #76h, #69h, #73h, #69h, #6fh, #6eh, #20h, #62h, #79h, #20h, #7ah, #65h, #72h, #6fh, #20h, #6fh, #63h, #63h, #75h, #72h, #65h, #64h, #20h, #6fh, #6eh, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
 		; temporary strings 
 	kernel_hex_string:   db #0, #0, #0, #0, #0, #0, #0, #0
-	carriage_return:    db #32, #0     
+	carriage_return:    db #32, #0
+	space:				db #20h, #0
 	; USER MEMORY SPACE
 	; Bubble sort
     array:     		    db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 

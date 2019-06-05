@@ -350,17 +350,17 @@ begin
                         
                     elsif decodedInstruction = LDTSRA then   
                         currentState <= Sldtsra;
-					
-					elsif (decodedInstruction = ADD or decodedInstruction = ADDI or decodedInstruction = SUB or decodedInstruction = SUBI) and V = '1'  then
-						currentState <= Sfetch;
-						TrapRequest <= '1';
-						regCause <= x"0C";
                     else                                -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
                         currentState <= Sfetch;   
                     end if;
                     
                 when Swbk =>
-                    registerFile(RGT) <= regALU;
+					if (decodedInstruction = ADD or decodedInstruction = ADDI or decodedInstruction = SUB or decodedInstruction = SUBI) and overflowFlag = '1'  then
+						TrapRequest <= '1';
+						regCause <= x"0C";
+					else
+						registerFile(RGT) <= regALU;
+					end if;
                     currentState <= Sfetch;
 					
 				when Sld =>
