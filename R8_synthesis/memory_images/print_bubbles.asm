@@ -489,14 +489,17 @@ print_array:
 
 
 BubbleSort:
-; Objective: sorts vector based on order (0 for crescent and 1 for descrent)
-; Argument: r1 <- &vector, r2 <- size, on stack: order
+; Objective: sorts vector based on order (0 for crescent and 1 for decrescent)
+; Argument: r1 <- order (array and size are hardcoded
 ; Return: NULL
     ; Initialization code
-	pop r9		
-	pop r10    				; r10 <- argument 3 (order)
-	push r9
     xor r0, r0, r0          ; r0 <- 0
+	add r10, r1, r0			; r10 <- order
+	ldh r1, #array 
+	ldl r1, #array
+	ldh r2, #size
+	ldl r2, #size
+	ld r2, r2, r0
     add r3, r2, r1          ; r3 points the end of array (right after the last element)
     
     ldl r4, #0              ;
@@ -544,7 +547,7 @@ swap_bs:
     ldl r4, #1              ; Set the element swaping (r4 <- 1)
     jmpd #continue_bs
 end_bs:
-    halt
+    rts
 ;end bubblesort
 
 
@@ -560,45 +563,40 @@ main:
 		ld r2, r8, r0
 		jsrd #print_array
 		
-		; xor r0, r0, r0
-		; ldh r1, #array
-		; ldl r1, #array
-		; ldh r8, #size
-		; ldl r8, #size
-		; ld r2, r8, r0
-		; push r10	
-		; jsrd #bubblesort		
+		 xor r0, r0, r0
+		add r1, r10, r0
+		jsrd #bubblesort		
 		
-		;jsrd #delay	
+		jsrd #delay	
 		
 		ldh r6, #7fh
 		ldl r6, #ffh
 		add r6, r6, r6		; overflow with add
 		
-		;jsrd #delay
+		jsrd #delay
 		
 		addi r6, #250		; overflow with addi
 		
-		;jsrd #delay
+		jsrd #delay
 		
 		ldh r7, #80h
 		ldl r7, #00h
 		add r7, r7, r7	   ; overflow with sub
 		
-		;jsrd #delay
+		jsrd #delay
 		
-		addi r7, #1 	   ; overflow with subi 
+		subi r7, #1 	   ; overflow with subi 
 		
-		;jsrd #delay
+		jsrd #delay
 		
 		xor r7, r7, r7
 		div r7, r7 		   ; division by zero
 		
-		;jsrd #delay
+		jsrd #delay
 		
 		inv 			   ; invalid instruction
 		
-		;jsrd #delay
+		jsrd #delay
 		
 		not r10, r10			; reverse sorting order
 		jmpd #main_loop

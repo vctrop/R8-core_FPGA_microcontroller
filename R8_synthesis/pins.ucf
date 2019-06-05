@@ -2,6 +2,11 @@ net "board_clock" loc = V10;
 //Middle button is reset
 net "board_rst" loc = B8;
 
+//serial com pins
+net "tx" = N18; 
+//net "rx" = N17;
+
+//ignore
 //Rightmost display is 0
 net "port_io[7]" loc = P17;
 net "port_io[6]" loc = P18;
