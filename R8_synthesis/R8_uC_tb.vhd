@@ -16,7 +16,6 @@ architecture testbench of R8_uC_tb is
       signal rst: std_logic;
       signal port_io : std_logic_vector(15 downto 0);
       signal rx, tx : std_logic;
-      signal display_digit : std_logic_vector(3 downto 0);
     
 begin
     
@@ -29,7 +28,11 @@ begin
             tx              => tx
         );
         
-    rx <= tx;
+    --rx <= tx;
+    
+    port_io(15) <= '0', '1' after 14 us;
+    port_io(14) <= '0';
+    
     
     -- Generates the clock signal            
     clk <= not clk after 10 ns;

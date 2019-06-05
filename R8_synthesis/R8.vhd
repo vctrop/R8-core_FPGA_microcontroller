@@ -140,7 +140,7 @@ architecture behavioral of R8 is
     --12: Signed overflow
     --15: Division by zero
     signal regCause : std_logic_vector(7 downto 0);
-	signal TrapSignal : std_logic;	--signal that is set on the event of a trap. set back to 0 once the processor executes JMP_TSR pseudo instruction
+	signal TrapRequest : std_logic;	--signal that is set on the event of a trap. set back to 0 once the processor executes JMP_TSR pseudo instruction
 	
 begin
     -- Instruction decoding
@@ -206,10 +206,11 @@ begin
                                         )   
                                     )  else 
 							
-							--failed jumps are decoded as NOP
-                            NOP  	when (regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"5") or 	-- NOP
-									regIR(15 downto 8) = x"C0" or regIR(15 downto 12) = x"E" 			-- Failed jump
-									else   									
+                            -- NOPs and failed jumps are decoded as NOPs
+                            NOP     when    (regIR(15 downto 12) = x"B" and regIR(3 downto 0) = x"5") or    -- NOP
+                                            regIR(15 downto 12) = x"D" or                                   -- Failed jumps
+                                            (regIR(15 downto 8) = x"C0" and unsigned(regIR(3 downto 0)) <= 9) or
+                                            (regIR(15 downto 12) = x"E" and (regIR(11 downto 10) = "00" or regIR(11 downto 10) = "01" or regIR(11 downto 10) = "10" or regIR(11 downto 10) = "11")) else
 									
                             MUL     when regIR(15 downto 8) = x"C1" else
                             DIV     when regIR(15 downto 8) = x"C2" else
@@ -244,7 +245,7 @@ begin
             regCause        <= (others => '0');
             TrapStatus         <= '0';
             InterruptionStatus <= '0';
-			TrapSignal 		   <= '0';
+			TrapRequest 		   <= '0';
             
         elsif rising_edge(clk) then    
             case currentState is
@@ -252,10 +253,10 @@ begin
                     currentState <= Sfetch;
            
                 when Sfetch =>
-					if TrapSignal = '1' and TrapStatus = '0' then
+					if TrapRequest = '1' and TrapStatus = '0' then
 						regIR <= x"B0DB";										--JMP_TSR microinstruction 
 						currentState <= Strap;
-						TrapSignal <= '0';
+						TrapRequest <= '0';
 						TrapStatus <= '1';
                     elsif intr ='1' and InterruptionStatus = '0' and TrapStatus = '0' then 
                         InterruptionStatus <= '1';
@@ -284,11 +285,11 @@ begin
                     elsif decodedInstruction = MFC then
 						currentState <= Smfc;
 					elsif decodedInstruction = SWI then
-						TrapSignal <= '1';
+						TrapRequest <= '1';
 						regCause <= x"08";
 						currentState <= Sfetch;
 					elsif decodedInstruction = INVALID or decodedInstruction = JMP_TSR or decodedInstruction = JMP_ISR then -- if the processor decodes a JMP_TSR or JMP_ISR and reaches this state, it is an invalid instruction
-						TrapSignal <= '1';
+						TrapRequest <= '1';
 						regCause <= x"01";
 						currentState <= Sfetch;
                     else
@@ -352,7 +353,7 @@ begin
 					
 					elsif (decodedInstruction = ADD or decodedInstruction = ADDI or decodedInstruction = SUB or decodedInstruction = SUBI) and V = '1'  then
 						currentState <= Sfetch;
-						TrapSignal <= '1';
+						TrapRequest <= '1';
 						regCause <= x"0C";
                     else                                -- ** ATTENTION ** NOP and jumps with corresponding flag=0 execute in just 3 clock cycles 
                         currentState <= Sfetch;   
@@ -448,7 +449,7 @@ begin
                     
                 when Sdiv =>
                     if regB = x"0000" then  
-						TrapSignal <= '1';			-- zero division trap
+						TrapRequest <= '1';			-- zero division trap
 						regCause <= x"0F";
 					else
                         regHigh <= std_logic_vector(unsigned(regA) mod unsigned(regB));
@@ -534,10 +535,10 @@ begin
     RGT <= to_integer(unsigned(regIR(11 downto 8)));
     
     -- Memory access interface
-    ce <= '1' when rst = '0' and (currentState = Sfetch or currentState = Srts or currentState = Srti or currentState = Spop or currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst or currentState = Spushf or currentState = Spopf or currentState = Sintr) else '0';
+    ce <= '1' when rst = '0' and (currentState = Sfetch or currentState = Srts or currentState = Srti or currentState = Spop or currentState = Sld or currentState = Ssbrt or currentState = Spush or currentState = Sst or currentState = Spushf or currentState = Spopf or currentState = Sintr or currentState = Strap) else '0';
     rw <= '1' when currentState = Sfetch or currentState = Srts or currentState = Srti or currentState = Spop or currentState = Sld or currentState = Spopf  else '0';
 	
-	address <= 	regSP   when currentState = Spush or currentState = Ssbrt or currentState = Spushf  or currentState = Sintr  else
+	address <= 	regSP   when currentState = Spush or currentState = Ssbrt or currentState = Spushf  or currentState = Sintr or currentState = Strap else
 				regPC   when currentState = Sfetch  else
 				regALU;
     
