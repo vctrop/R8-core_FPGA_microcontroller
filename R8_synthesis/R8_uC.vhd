@@ -14,7 +14,7 @@ entity R8_uC is
         board_clock     : in std_logic;
         board_rst       : in std_logic;
         port_io         : inout std_logic_vector(15 downto 0);
-        rx              : in std_logic;
+        -- rx              : in std_logic;
         tx              : out std_logic
     );
 end R8_uC;
@@ -22,16 +22,16 @@ end R8_uC;
 architecture structural of R8_uC is
     
       signal clk, clk_mem, clk_div4 : std_logic;
-      signal rw, ce, rst, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, ce_TX, TX_av, TX_ready, RX_av, ce_RX , RX_av_latch: std_logic;
+      signal rw, ce, rst, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, ce_TX, TX_av, TX_ready: std_logic;
       signal R8_out, R8_in, addressR8, mem_out, data_portA, irq : std_logic_vector(15 downto 0);
-      signal data_PIC, PIC_irq, data_TX, data_RX : std_logic_vector(7 downto 0);
+      signal data_PIC, PIC_irq, data_TX : std_logic_vector(7 downto 0);
       alias address_peripherals is addressR8(7 downto 4);
 
 begin
     
     PROCESSOR: entity work.R8(behavioral) 
         port map (
-            clk         => clk, 
+            clk         => clk_div4, 
             rst         => rst, 
             data_in     => R8_in, 
             data_out    => R8_out, 
@@ -99,10 +99,10 @@ begin
     
     UART_TX : entity work.UART_TX
     generic map(
-        RATE_FREQ_BAUD  =>  25000000/921600 
+        RATE_FREQ_BAUD  =>  50000000/115200 
     )
     port map(
-        clk         => board_clock,
+        clk         => clk,
         rst         => rst,
         data_in     => data_TX,
         data_av     => TX_av,
@@ -110,17 +110,17 @@ begin
         ready       => TX_ready
     );
     
-    UART_RX : entity work.UART_RX
-    generic map(
-        RATE_FREQ_BAUD  => 25000000/921600 
-    )
-    port map(
-        clk         => board_clock,
-        rst         => rst,
-        rx          => rx,
-        data_out    => data_RX,
-        data_av     => RX_av
-    );
+    -- UART_RX : entity work.UART_RX
+    -- generic map(
+        -- RATE_FREQ_BAUD  => 25000000/115200 
+    -- )
+    -- port map(
+        -- clk         => board_clock,
+        -- rst         => rst,
+        -- rx          => rx,
+        -- data_out    => data_RX,
+        -- data_av     => RX_av
+    -- );
     
     CLOCK_MANAGER : entity work.ClockManager 
         port map(
@@ -153,25 +153,25 @@ begin
     R8_in <=    data_portA                      when rw = '1' and ce_portA  = '1' else 
                 x"00" & data_PIC                when rw = '1' and ce_PIC    = '1' else 
                 (0 => TX_ready, others => '0')  when rw = '1' and ce_TX     = '1' else 
-                x"00" & data_RX                 when rw = '1' and ce_RX     = '1' else
+                -- x"00" & data_RX                 when rw = '1' and ce_RX     = '1' else
                 mem_out;
 
     --memory clock is inverted to work at falling edge borders of the R8 clock
     clk_mem <= not clk;    
     
     -- Implement RX_av that is only down after data is read
-    process(RX_av, ce_RX, rst)
-    begin
-        if rst = '1' then
-            RX_av_latch <= '0';
-        else
-            if rising_edge(RX_av) then
-                RX_av_latch <= '1';
-            elsif falling_edge(ce_RX) then
-                RX_av_latch <= '0';
-            end if;
-        end if;
-    end process;
+    -- process(RX_av, ce_RX, rst)
+    -- begin
+        -- if rst = '1' then
+            -- RX_av_latch <= '0';
+        -- else
+            -- if rising_edge(RX_av) then
+                -- RX_av_latch <= '1';
+            -- elsif falling_edge(ce_RX) then
+                -- RX_av_latch <= '0';
+            -- end if;
+        -- end if;
+    -- end process;
     
     -- write enable decoder:
     ce_mem      <= '1' when ce = '1' and addressR8(15) = '0'                                    else '0';
@@ -179,7 +179,7 @@ begin
     ce_portA    <= '1' when ce_io = '1' and address_peripherals = x"0"                          else '0';
     ce_PIC      <= '1' when ce_io = '1' and address_peripherals = x"1"                          else '0';
     ce_TX       <= '1' when ce_io = '1' and address_peripherals = x"2"                          else '0';
-    ce_RX       <= '1' when ce_io = '1' and address_peripherals = x"3" and RX_av_latch = '1'    else '0';
+    -- ce_RX       <= '1' when ce_io = '1' and address_peripherals = x"3" and RX_av_latch = '1'    else '0';
     
 	-- Tx interface 
 	TX_av <= '1' when ce_TX = '1' and rw = '0' else '0';

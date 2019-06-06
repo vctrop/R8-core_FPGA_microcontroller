@@ -1,19 +1,10 @@
 net "board_clock" loc = V10;
-//Middle button is reset
 net "board_rst" loc = B8;
 
-//serial com pins
-net "tx" = N18; 
-//net "rx" = N17;
-
-//ignore
-//Rightmost display is 0
 net "port_io[7]" loc = P17;
 net "port_io[6]" loc = P18;
 net "port_io[5]" loc = N15;
 net "port_io[4]" loc = N16;
-
-//PINS are ABCDEFG.
 net "port_io[8]" loc = M13;
 net "port_io[9]" loc = L14;
 net "port_io[10]" loc = N14;
@@ -22,9 +13,8 @@ net "port_io[12]" loc = U18;
 net "port_io[13]" loc = U17;
 net "port_io[14]" loc = T18;
 net "port_io[15]" loc = T17;
-
 net "port_io[3]" loc = a8;
 net "port_io[2]" loc = c9;
-//ignore
 net "port_io[1]" loc = v16;
 net "port_io[0]" loc = u16;
+net "tx" loc = N18;

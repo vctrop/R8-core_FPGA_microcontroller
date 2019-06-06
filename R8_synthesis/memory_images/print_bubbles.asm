@@ -187,9 +187,12 @@ tsr_invalid_instruction:
 	add r1, r3, r0
 	jsrd #print_string		; print error address
 	
+	ldh r1, #line_feed
+	ldl r1, #line_feed
+	jsrd #print_string
 	ldh r1, #carriage_return
 	ldl r1, #carriage_return
-	jsrd #print_string		; print '\n'
+	jsrd #print_string	; print '\n'
 	
 	rts
 ;end tsr_invalid_instruction
@@ -211,9 +214,12 @@ tsr_signed_overflow:
 	add r1, r3, r0
 	jsrd #print_string		; print error address
 	
+	ldh r1, #line_feed
+	ldl r1, #line_feed
+	jsrd #print_string
 	ldh r1, #carriage_return
 	ldl r1, #carriage_return
-	jsrd #print_string		; print '\n'
+	jsrd #print_string	; print '\n'
 	
 	rts
 ;end tsr_signed_overflow
@@ -235,6 +241,9 @@ tsr_div_by_zero:
 	add r1, r3, r0
 	jsrd #print_string		; print error address
 	
+	ldh r1, #line_feed
+	ldl r1, #line_feed
+	jsrd #print_string
 	ldh r1, #carriage_return
 	ldl r1, #carriage_return
 	jsrd #print_string		; print '\n'
@@ -413,18 +422,26 @@ delay:
 ; Objective: busy wait from an undetermined amount of time
 ; Argument: NULL 
 ; Return: NULL
-	ldh r5, #7Fh
-	ldl r5, #ffh
-	delay_loop:
-		subi r5, #1
-		nop 
-		nop
-		nop
-		nop
-		jmpzd #delay_end
-		jmpd #delay_loop
-	delay_end:
-    
+	ldh r9, #00h
+	ldl r9, #0Fh
+	delay_outter_loop:
+		ldh r5, #7Fh
+		ldl r5, #ffh
+		delay_inner_loop:
+			subi r5, #1
+			nop 
+			nop
+			nop
+			nop
+			jmpzd #delay_inner_end
+			jmpd #delay_inner_loop
+		delay_inner_end:
+		
+		subi r9, #1
+		jmpzd #delay_outter_end
+		jmpd #delay_outter_loop
+	delay_outter_end:
+		
 	rts
 ;end delay
 
@@ -472,7 +489,12 @@ print_array:
     do_while_end:
 	
 	; print new line
-    ldh r1, #carriage_return
+    ldh r1, #line_feed
+	ldl r1, #line_feed
+	ldh r14, #0
+	ldl r14, #0
+	swi 			; print_string
+	ldh r1, #carriage_return
 	ldl r1, #carriage_return
 	ldh r14, #0
 	ldl r14, #0
@@ -614,8 +636,9 @@ main:
     ov_msg:				db #4fh, #76h, #65h, #72h, #66h, #6ch, #6fh, #77h, #20h, #6fh, #63h, #63h, #75h, #72h, #65h, #64h, #20h, #61h, #74h, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
 	div_zero_msg:		db #44h, #69h, #76h, #69h, #73h, #69h, #6fh, #6eh, #20h, #62h, #79h, #20h, #7ah, #65h, #72h, #6fh, #20h, #6fh, #63h, #63h, #75h, #72h, #65h, #64h, #20h, #6fh, #6eh, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
 		; temporary strings 
-	kernel_hex_string:   db #0, #0, #0, #0, #0, #0, #0, #0
-	carriage_return:    db #32, #0
+	kernel_hex_string: 	db #0, #0, #0, #0, #0, #0, #0, #0
+	line_feed:		    db #10, #0
+	carriage_return:	db #13, #0
 	space:				db #20h, #0
 	; USER MEMORY SPACE
 	; Bubble sort
