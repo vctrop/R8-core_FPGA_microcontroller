@@ -13,8 +13,10 @@ entity R8_uC is
     port(
         board_clock     : in std_logic;
         board_rst       : in std_logic;
+        -- Bidirectional data port
         port_io         : inout std_logic_vector(15 downto 0);
-        -- rx              : in std_logic;
+        -- Serial communication
+        rx              : in std_logic;
         tx              : out std_logic
     );
 end R8_uC;
@@ -22,10 +24,11 @@ end R8_uC;
 architecture structural of R8_uC is
     
       signal clk, clk_mem, clk_div4 : std_logic;
-      signal rw, ce, rst, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, ce_TX, TX_av, TX_ready: std_logic;
-      signal R8_out, R8_in, addressR8, mem_out, data_portA, irq : std_logic_vector(15 downto 0);
-      signal data_PIC, PIC_irq, data_TX : std_logic_vector(7 downto 0);
+      signal rw, ce, rst, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, ce_TX, TX_av, TX_ready, RX_av, RX_baud_av: std_logic;
+      signal R8_out, R8_in, addressR8, mem_out, data_portA, irq, RX_baud_in : std_logic_vector(15 downto 0);
+      signal data_PIC, PIC_irq, data_TX, data_RX : std_logic_vector(7 downto 0);
       alias address_peripherals is addressR8(7 downto 4);
+      alias address_registers   is addressR8(1 downto 0);
 
 begin
     
@@ -71,7 +74,7 @@ begin
             
             -- Processor interface
             data        => data_portA,
-            address     => addressR8(1 downto 0),
+            address     => address_registers,
             wr          => rw_n,                -- 1: write, 0: read
             ce          => ce_portA,
             irq		    => irq,
@@ -90,7 +93,7 @@ begin
         clk         => clk,
         rst         => rst, 
         data        => data_PIC,
-        address     => addressR8(1 downto 0),
+        address     => address_registers,
         wr          => rw_n, -- wr = 0: Read; wr = 1: Write
         ce          => ce_PIC,
         intr        => intr, -- To processor
@@ -99,28 +102,29 @@ begin
     
     UART_TX : entity work.UART_TX
     generic map(
-        RATE_FREQ_BAUD  =>  50000000/115200 
+        FREQ_BAUD_ADDR  => "00",
+        TX_DATA_ADDR    => "01"
     )
     port map(
         clk         => clk,
         rst         => rst,
-        data_in     => data_TX,
         data_av     => TX_av,
+        address     => address_registers;
+        data_in     => data_TX,
         tx          => tx,
         ready       => TX_ready
     );
     
-    -- UART_RX : entity work.UART_RX
-    -- generic map(
-        -- RATE_FREQ_BAUD  => 25000000/115200 
-    -- )
-    -- port map(
-        -- clk         => board_clock,
-        -- rst         => rst,
-        -- rx          => rx,
-        -- data_out    => data_RX,
-        -- data_av     => RX_av
-    -- );
+    UART_RX : entity work.UART_RX
+    port map(
+        clk         => board_clock,
+        rst         => rst,
+        baud_av     => RX_baud_av,
+        baud_in     => RX_baud_in,
+        rx          => rx,
+        data_out    => data_RX,
+        data_av     => RX_av
+    );
     
     CLOCK_MANAGER : entity work.ClockManager 
         port map(
@@ -137,7 +141,7 @@ begin
         );
 
     --interrupt interface
-    PIC_irq <= irq(15 downto 12) & x"0";
+    PIC_irq <= irq(15 downto 12) & "000" & RX_av;
     
     -- Memory access control signals       
     rw_n   <= not rw;    
@@ -148,40 +152,26 @@ begin
     data_PIC <= R8_out(7 downto 0) when rw = '0' and ce_PIC = '1' else           -- PIC data i/o tristate
                 (others => 'Z');
             
-    data_TX <= R8_out(7 downto 0);
-          
+    data_TX     <= R8_out;
+    RX_baud_in  <= R8_out; 
+      
     R8_in <=    data_portA                      when rw = '1' and ce_portA  = '1' else 
                 x"00" & data_PIC                when rw = '1' and ce_PIC    = '1' else 
                 (0 => TX_ready, others => '0')  when rw = '1' and ce_TX     = '1' else 
-                -- x"00" & data_RX                 when rw = '1' and ce_RX     = '1' else
+                x"00" & data_RX                 when rw = '1' and ce_RX     = '1' else
                 mem_out;
 
     --memory clock is inverted to work at falling edge borders of the R8 clock
     clk_mem <= not clk;    
     
-    -- Implement RX_av that is only down after data is read
-    -- process(RX_av, ce_RX, rst)
-    -- begin
-        -- if rst = '1' then
-            -- RX_av_latch <= '0';
-        -- else
-            -- if rising_edge(RX_av) then
-                -- RX_av_latch <= '1';
-            -- elsif falling_edge(ce_RX) then
-                -- RX_av_latch <= '0';
-            -- end if;
-        -- end if;
-    -- end process;
-    
     -- write enable decoder:
-    ce_mem      <= '1' when ce = '1' and addressR8(15) = '0'                                    else '0';
-    ce_io       <= '1' when ce = '1' and addressR8(15) = '1'                                    else '0';
-    ce_portA    <= '1' when ce_io = '1' and address_peripherals = x"0"                          else '0';
-    ce_PIC      <= '1' when ce_io = '1' and address_peripherals = x"1"                          else '0';
-    ce_TX       <= '1' when ce_io = '1' and address_peripherals = x"2"                          else '0';
-    -- ce_RX       <= '1' when ce_io = '1' and address_peripherals = x"3" and RX_av_latch = '1'    else '0';
-    
-	-- Tx interface 
-	TX_av <= '1' when ce_TX = '1' and rw = '0' else '0';
-
+    ce_mem      <= '1' when ce = '1' and addressR8(15) = '0'            else '0';
+    ce_io       <= '1' when ce = '1' and addressR8(15) = '1'            else '0';
+    ce_portA    <= '1' when ce_io = '1' and address_peripherals = x"0"  else '0';
+    ce_PIC      <= '1' when ce_io = '1' and address_peripherals = x"1"  else '0';
+    ce_TX       <= '1' when ce_io = '1' and address_peripherals = x"2"  else '0';
+    ce_RX       <= '1' when ce_io = '1' and address_peripherals = x"3"  else '0';
+     
+	TX_av       <= '1' when ce_TX = '1' and rw = '0' else '0';
+    RX_baud_av  <= '1' when ce_RX = '1' and rw = '0' else '0';
 end structural;
