@@ -16,7 +16,7 @@ use IEEE.numeric_std.all;
 entity UART_TX is
     generic(
         FREQ_BAUD_ADDR  : std_logic_vector(1 downto 0);
-        TX_DATA_ADDR    : std_logic_vector(1 downto 0);
+        TX_DATA_ADDR    : std_logic_vector(1 downto 0)
     );
     port(
         clk         : in std_logic;
@@ -50,7 +50,9 @@ begin
         elsif rising_edge(clk) then
             if data_av = '1' and address = FREQ_BAUD_ADDR then
                 reg_freq_baud <= data_in;
+            end if;
         end if;
+    end process;
     
     -- Clock counter
     process(clk,rst)

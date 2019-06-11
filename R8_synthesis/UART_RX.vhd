@@ -47,6 +47,7 @@ begin
         elsif rising_edge(clk) then
             if baud_av = '1' then
                 reg_freq_baud <= baud_in;
+            end if;
         end if;
     end process;
     

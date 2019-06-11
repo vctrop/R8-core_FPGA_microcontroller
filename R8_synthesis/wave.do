@@ -32,67 +32,20 @@ add wave -noupdate /r8_uc_tb/R8_uC/PROCESSOR/regCause
 add wave -noupdate -divider Interruptions
 add wave -noupdate /r8_uc_tb/R8_uC/irq
 add wave -noupdate /r8_uc_tb/R8_uC/PROCESSOR/intr
+add wave -noupdate /r8_uc_tb/R8_uC/PIC/mask
 add wave -noupdate -divider Tx
-add wave -noupdate -radix ascii -radixshowbase 0 /r8_uc_tb/R8_uC/data_TX
+add wave -noupdate /r8_uc_tb/R8_uC/UART_TX/currentState
+add wave -noupdate /r8_uc_tb/R8_uC/UART_TX/reg_freq_baud
+add wave -noupdate -radix ascii -childformat {{/r8_uc_tb/R8_uC/data_TX(15) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(14) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(13) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(12) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(11) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(10) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(9) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(8) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(7) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(6) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(5) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(4) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(3) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(2) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(1) -radix ascii} {/r8_uc_tb/R8_uC/data_TX(0) -radix ascii}} -radixshowbase 0 -subitemconfig {/r8_uc_tb/R8_uC/data_TX(15) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(14) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(13) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(12) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(11) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(10) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(9) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(8) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(7) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(6) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(5) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(4) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(3) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(2) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(1) {-radix ascii -radixshowbase 0} /r8_uc_tb/R8_uC/data_TX(0) {-radix ascii -radixshowbase 0}} /r8_uc_tb/R8_uC/data_TX
 add wave -noupdate /r8_uc_tb/R8_uC/TX_av
 add wave -noupdate -divider Rx
+add wave -noupdate /r8_uc_tb/R8_uC/UART_RX/currentState
+add wave -noupdate /r8_uc_tb/R8_uC/UART_RX/rx
+add wave -noupdate /r8_uc_tb/R8_uC/UART_RX/reg_freq_baud
 add wave -noupdate -radix ascii -radixshowbase 0 /r8_uc_tb/R8_uC/data_RX
 add wave -noupdate /r8_uc_tb/R8_uC/RX_av
-add wave -noupdate /r8_uc_tb/R8_uC/RX_av_latch
-add wave -noupdate -divider memory
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1147)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1148)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1149)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1150)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1151)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1152)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1153)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1154)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1155)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1156)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1157)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1158)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1159)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1160)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1161)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1162)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1163)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1164)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1165)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1166)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1167)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1168)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1169)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1170)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1171)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1172)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1173)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1174)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1175)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1176)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1177)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1178)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1179)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1180)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1181)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1182)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1183)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1184)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1185)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1186)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1187)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1188)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1189)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1190)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1191)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1192)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1193)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1194)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1195)
-add wave -noupdate -radix decimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1196)
-add wave -noupdate /r8_uc_tb/R8_uC/RAM/RAM(1197)
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {4948904164 ps} 0}
+WaveRestoreCursors {{Cursor 1} {11484995 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 129
 configure wave -valuecolwidth 150
@@ -108,4 +61,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {4901595904 ps} {5078502144 ps}
+WaveRestoreZoom {75738011 ps} {101276947 ps}

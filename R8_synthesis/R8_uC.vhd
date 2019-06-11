@@ -24,9 +24,9 @@ end R8_uC;
 architecture structural of R8_uC is
     
       signal clk, clk_mem, clk_div4 : std_logic;
-      signal rw, ce, rst, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, ce_TX, TX_av, TX_ready, RX_av, RX_baud_av: std_logic;
-      signal R8_out, R8_in, addressR8, mem_out, data_portA, irq, RX_baud_in : std_logic_vector(15 downto 0);
-      signal data_PIC, PIC_irq, data_TX, data_RX : std_logic_vector(7 downto 0);
+      signal rw, ce, rst, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, ce_TX, TX_av, TX_ready, RX_av, RX_baud_av, ce_RX: std_logic;
+      signal R8_out, R8_in, addressR8, mem_out, data_portA, irq, RX_baud_in, data_TX : std_logic_vector(15 downto 0);
+      signal data_PIC, PIC_irq, data_RX : std_logic_vector(7 downto 0);
       alias address_peripherals is addressR8(7 downto 4);
       alias address_registers   is addressR8(1 downto 0);
 
@@ -49,7 +49,7 @@ begin
         generic map (
             DATA_WIDTH  => 16,       
             ADDR_WIDTH  => 15,         
-            IMAGE       => "memory_images/print_bubbles_BRAM.txt"    
+            IMAGE       => "memory_images/RX_TX_test_BRAM.txt"    
             )
         port map(  
             clk         => clk_mem,
@@ -109,7 +109,7 @@ begin
         clk         => clk,
         rst         => rst,
         data_av     => TX_av,
-        address     => address_registers;
+        address     => address_registers,
         data_in     => data_TX,
         tx          => tx,
         ready       => TX_ready
@@ -141,7 +141,8 @@ begin
         );
 
     --interrupt interface
-    PIC_irq <= irq(15 downto 12) & "000" & RX_av;
+    PIC_irq(7 downto 4) <= irq(15 downto 12);
+    PIC_irq(3 downto 0) <= (1 => RX_av, others => '0');
     
     -- Memory access control signals       
     rw_n   <= not rw;    

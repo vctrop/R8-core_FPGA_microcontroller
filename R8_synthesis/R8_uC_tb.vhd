@@ -30,10 +30,6 @@ begin
         
     rx <= tx;
     
-    --port_io(15) <= '0';
-    --port_io(14) <= '0';
-    
-    
     -- Generates the clock signal            
     clk <= not clk after 10 ns;
     
