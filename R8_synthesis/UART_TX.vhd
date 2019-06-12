@@ -46,7 +46,7 @@ begin
     process(clk,rst)
     begin
         if rst = '1' then
-            reg_freq_baud <= (others => '0');
+            reg_freq_baud <= "0A2C";  -- floor (25e6 / 9600) = 2604 is the standard baud rate for 9600 bps
         elsif rising_edge(clk) then
             if data_av = '1' and address = FREQ_BAUD_ADDR then
                 reg_freq_baud <= data_in;

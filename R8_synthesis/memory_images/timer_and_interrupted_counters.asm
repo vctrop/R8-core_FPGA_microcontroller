@@ -7,6 +7,28 @@ boot:
     ldl r0, #ffh
     ldsp r0
     
+    ldh r0, #ISR
+    ldl r0, #ISR
+    ldisra r0
+	
+	ldh r0, #TSR
+	ldl r0, #TSR
+	ldtsra r0
+    
+    ;interruption handlers for increment and decrement buttons
+    xor r0, r0, r0
+	ldh r8, #irq_handlers
+	ldl r8, #irq_handlers
+	ldh r9, #increment_handler
+	ldl r9, #increment_handler
+	addi r0, #6
+	st r9, r8, r0 
+	
+	ldh r9, #decrement_handler
+	ldl r9, #decrement_handler
+	addi r0, #1
+	st r9, r8, r0
+    
     xor r0, r0, r0
 	xor r5, r5, r5
 	
@@ -62,15 +84,47 @@ boot:
     ldl r9, #FCh            ; r9 <= PortA regEnable content
     st r9, r8, r0           ; Write regEnable content on its address
     
-    ;ldh r10, #80h           ;
-    ;ldl r10, #02h           ; r10 <= PortA regData address
+    ldh r8, #80h            ;
+    ldl r8, #03h            ; r8 <= PortA irqEnable address
+    ldh r9, #00h            ; only the push buttons can interrupt
+    ldl r9, #0Ch            ; r8 <= PortA irqEnable content
+    st r9, r8, r0           ; Write irqEnable content on its address
     
+    ; THIS SHOULD BE THE LAST THING BEFORE MAIN:
+    ; set interruption mask
     xor r0, r0, r0
+    ldh r8, #80h
+	ldl r8, #12h			; sets PIC interruption mask
+	ldh r9, #00h			
+	ldl r9, #0Ch
+	st r9, r8, r0
+    
     jmpd #main
 
+; UCF for this program is:
+; //Rightmost display is 0
+; net "port_io[4]" loc = P17;
+; net "port_io[5]" loc = P18;
+; net "port_io[6]" loc = N15;
+; net "port_io[7]" loc = N16;
 
-.org #0040h
-interruption_handler:
+; //PINS are ABCDEFG.
+; net "port_io[8]" loc = M13;
+; net "port_io[9]" loc = L14;
+; net "port_io[10]" loc = N14;
+; net "port_io[11]" loc = M14;
+; net "port_io[12]" loc = U18;
+; net "port_io[13]" loc = U17;
+; net "port_io[14]" loc = T18;
+; net "port_io[15]" loc = T17;
+
+; net "port_io[3]" loc = a8;
+; net "port_io[2]" loc = c9;
+; //ignore
+; net "port_io[1]" loc = v16;
+; net "port_io[0]" loc = u16;
+
+ISR:
     push r0
     push r1
     push r2
@@ -90,52 +144,17 @@ interruption_handler:
     pushf
     
     xor r0, r0, r0
-	xor r10, r10, r10
-	
-	ldh r7, #debounce_flag
-	ldl r7, #debounce_flag
-	ld r8, r7, r0						; r8 <- debounce_flag
-	
-	addi r10, #23
-	addi r8, #0							;
-	jmpzd #debounce_zero_ih				; if debounce_flag == 0:
-	jmpd #check_time_ih			        ; (else, skip button checking)
-	debounce_zero_ih:
-	;ldh r5, #01h						;
-	;ldl r5, #2Ch						;
-	;add r8, r5, r0						;
-	xor r8, r8, r8
-	addi r8, #220
-	st r8, r7, r0						; 	debounce_flag <- debounce_flag + 300	 (ms)
-	
-    ldh r5, #80h
-    ldl r5, #02h
-    ld r6, r5, r0           			; 	r6 <- regData
-    
-    ldh r5, #00h
-    ldl r5, #08h            			; 	r5 <- increment interruption mask
-	addi r10, #13
-    and r7, r6, r5         				;
-    jmpzd #isr_increment_false			;	if increment button is pressed:
-    jsrd #increment_handler				;   	call increment handler
-	addi r10, #25
-    jmpd #check_time_ih
-    isr_increment_false:				;
-    
-    ldh r5, #00h
-    ldl r5, #04h            			; 	r5 <- decrement interruption mask
-	addi r10, #6
-    and r7, r6, r5						;
-    jmpzd #check_time_ih			    ;	if decrement button is pressed:
-    jsrd #decrement_handler				; 		call decrement handler
-	addi r10, #25
-    
-
-	check_time_ih:
-	xor r0, r0, r0
-	addi r10, #21
-	add r1, r10, r0
-	jsrd #srt_check_time				; check_time(r1)
+    ldh r8, #80h
+	ldl r8, #10h
+	ld r10, r8, r0			; reads interruption number
+	ldh r8, #irq_handlers
+	ldl r8, #irq_handlers
+    ld r8, r8, r10
+	jsr r8					; jumps to appropriate handler 
+	xor r0, r0, r0 
+	ldh r8, #80h
+	ldl r8, #11h
+	st r10, r8, r0		  ; clears interruption
 	
     popf
     pop r15
@@ -155,32 +174,80 @@ interruption_handler:
     pop r1
     pop r0
     rti
-;end interruption_handler
+;end ISR
+
+
+TSR:
+    rti                 ; we don't execute any handlers for traps in this program
+;end TSR
 
 
 ; Specific interruption handlers
 increment_handler:
-
+; Objective: checks for debounce flag, if available, increment debounce flag and increment counter
+; Argument: NULL
+; Return: NULL
+    xor r0, r0, r0
+	xor r10, r10, r10
+	
+	ldh r7, #debounce_flag
+	ldl r7, #debounce_flag
+	ld r8, r7, r0						; r8 <- debounce_flag
+	
+	addi r10, #23
+	addi r8, #0							;
+	jmpzd #debounce_zero_ih				; if debounce_flag == 0:
+	jmpd #check_time_ih			        ; (else, skip button checking)
+	debounce_zero_ih:
+	xor r8, r8, r8
+	addi r8, #220
+	st r8, r7, r0						; 	debounce_flag <- debounce_flag + 300	 (ms)
+    
+    ; call subroutine to increment counter
 	ldh r1, #00h						;
 	ldl r1, #02h						;
 	jsrd #srt_decimal_increment			; decimal_increment(counter)
-
+    
+    check_time_ih:
+	xor r0, r0, r0
+	addi r10, #21
+	add r1, r10, r0
+	jsrd #srt_check_time				; check_time(r1)
 	rts
 
 decrement_handler:
+; Objective: checks for debounce flag, if available, increment debounce flag and decrement counter
+; Argument: NULL
+; Return: NULL
+    xor r0, r0, r0
+	xor r10, r10, r10
+	
+	ldh r7, #debounce_flag
+	ldl r7, #debounce_flag
+	ld r8, r7, r0						; r8 <- debounce_flag
+	
+	addi r10, #23
+	addi r8, #0							;
+	jmpzd #debounce_zero_dh				; if debounce_flag == 0:
+	jmpd #check_time_dh			        ; (else, skip button checking)
+	debounce_zero_dh:
+	xor r8, r8, r8
+	addi r8, #220
+	st r8, r7, r0						; 	debounce_flag <- debounce_flag + 300	 (ms)
+    
+    ; call subroutine to decrement counter
     ldh r1, #00h						;
 	ldl r1, #02h						;
 	jsrd #srt_decimal_decrement			; decimal_decrement(counter)
 
+    check_time_dh:
+	xor r0, r0, r0
+	addi r10, #21
+	add r1, r10, r0
+	jsrd #srt_check_time				; check_time(r1)
 	rts
 ; interruption handling end   
-    
-main:
-
-	xor r1, r1, r1
-    jsrd #srt_check_time
-	
-    jmpd #main
+   
 
 	
 ; Subroutines
@@ -421,10 +488,21 @@ srt_decimal_decrement:
 	rts
 ;end srt_decimal_decrement
 
+
+main:
+	xor r1, r1, r1
+    jsrd #srt_check_time
+	
+    jmpd #main
+;end main
+
 .endcode
 
 
 .data
+    ;KERNEL MEMORY SPACE
+    irq_handlers: 	    db #0, #0, #0, #0, #0, #0, #0, #0
+    ;USER MEMORY SPACE
 	seg_codes:  			db #0300h, #9F00h, #2500h, #0D00h, #9900h, #4900h, #4100h, #1F00h, #0100h, #0900h
 	display: 				db #0000h, #0000h, #0000h, #0000h						;display[0] = units timer, display[3] = tens counter
 	enable_display_mask: 	db #00E0h, #00D0h, #00B0h, #0070h                       ;display enable active at 0

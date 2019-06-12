@@ -102,8 +102,8 @@ begin
     
     UART_TX : entity work.UART_TX
     generic map(
-        FREQ_BAUD_ADDR  => "00",
-        TX_DATA_ADDR    => "01"
+        FREQ_BAUD_ADDR  => "01",
+        TX_DATA_ADDR    => "00"
     )
     port map(
         clk         => clk,
@@ -141,8 +141,11 @@ begin
         );
 
     --interrupt interface
-    PIC_irq(7 downto 4) <= irq(15 downto 12);
-    PIC_irq(3 downto 0) <= (1 => RX_av, others => '0');
+    --port_io(3) <= increment_button
+    --port_io(2) <= decrement button
+    --PIC_irq(7 downto 4) <= irq(15 downto 12);     --no longer used
+    PIC_irq(7 downto 6) <= irq(3 downto 2);
+    PIC_irq(5 downto 0) <= (1 => RX_av, others => '0');
     
     -- Memory access control signals       
     rw_n   <= not rw;    
