@@ -38,10 +38,11 @@ main:
 	ldh r12, #0
 	ldl r12, #1			; 1 constant to send as ack signal
 	ldh r13, #00h
-	ldl r13, #01h 		; interruption mask
+	ldl r13, #02h 		; interruption mask
 	ldh r14, #80h
 	ldl r14, #30h		; RX address
 	main_loop:
+		xor r7, r7, r7 	; reset temporary register
 		ld r9, r10, r0	; check for data_av signal interruption
 		and r9, r9, r13 ; check for interruption
 		addi r9, #0
@@ -50,8 +51,7 @@ main:
 		addi r6, #0
 		jmpzd #store_upper_byte
 		;store lower byte
-			ld r8, r5, r0  		; read memory
-			or r9, r9, r8 		; combine upper and lower byte
+			or r9, r9, r7 		; combine upper and lower byte
 			st r9, r5, r0		; store in memory
 			addi r5, #1
 			xor r6, r6, r6		; set next byte as higher 
@@ -65,7 +65,7 @@ main:
 			sl0 r9, r9 
 			sl0 r9, r9 
 			sl0 r9, r9 	; shift tx_data << 8
-			st r9, r5, r0 ;store in memory
+			add r7, r9, r0		; saves upper byte in temporary register
 			addi r6, #1	; set next byte as lower
 		send_ack:
 		st r12, r11, r0 	; send ack signal to PIC
