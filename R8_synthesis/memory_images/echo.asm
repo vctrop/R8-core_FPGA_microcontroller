@@ -74,11 +74,17 @@ boot:
 	addi r0, #1
 	st r9, r8, r0 
     
-    ; SET RX BAUD RATE HERE!! CHANGE THIS LASTERRRRRRRRRRRRRRRRRRRR
+	;set baud rate for USART comunications
     ;434  -- floor (25e6 / 57600)
     xor r0, r0, r0
     ldh r8, #80h
-	ldl r8, #31h
+	ldl r8, #30h			; rx_baud address
+	ldh r9, #0
+	ldl r9, #434
+	st r9, r8, r0 
+	
+	ldh r8, #80h
+	ldl r8, #21h			; tx_baud address
 	ldh r9, #0
 	ldl r9, #434
 	st r9, r8, r0 
@@ -215,11 +221,8 @@ tsr_invalid_instruction:
 	add r1, r3, r0
 	jsrd #print_string		; print error address
 	
-	ldh r1, #line_feed
-	ldl r1, #line_feed
-	jsrd #print_string
-	ldh r1, #carriage_return
-	ldl r1, #carriage_return
+	ldh r1, #new_line
+	ldl r1, #new_line
 	jsrd #print_string	; print '\n'
 	
 	rts
@@ -242,11 +245,8 @@ tsr_signed_overflow:
 	add r1, r3, r0
 	jsrd #print_string		; print error address
 	
-	ldh r1, #line_feed
-	ldl r1, #line_feed
-	jsrd #print_string
-	ldh r1, #carriage_return
-	ldl r1, #carriage_return
+	ldh r1, #new_line
+	ldl r1, #new_line
 	jsrd #print_string	; print '\n'
 	
 	rts
@@ -268,12 +268,9 @@ tsr_div_by_zero:
 	xor r0, r0, r0 
 	add r1, r3, r0
 	jsrd #print_string		; print error address
-	
-	ldh r1, #line_feed
-	ldl r1, #line_feed
-	jsrd #print_string
-	ldh r1, #carriage_return
-	ldl r1, #carriage_return
+
+	ldh r1, #new_line
+	ldl r1, #new_line
 	jsrd #print_string		; print '\n'
 	
 	rts

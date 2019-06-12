@@ -17,24 +17,32 @@ entity R8_uC is
         port_io         : inout std_logic_vector(15 downto 0);
         -- Serial communication
         rx              : in std_logic;
-        tx              : out std_logic
+        tx              : out std_logic;
+		--selects between programing mode and user mode
+		mode			: in std_logic	 -- user mode: 0 , programing mode: 1
     );
 end R8_uC;
 
 architecture structural of R8_uC is
     
-      signal clk, clk_mem, clk_div4 : std_logic;
-      signal rw, ce, rst, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, ce_TX, TX_av, TX_ready, RX_av, RX_baud_av, ce_RX: std_logic;
-      signal R8_out, R8_in, addressR8, mem_out, data_portA, irq, RX_baud_in, data_TX : std_logic_vector(15 downto 0);
-      signal data_PIC, PIC_irq, data_RX : std_logic_vector(7 downto 0);
-      alias address_peripherals is addressR8(7 downto 4);
-      alias address_registers   is addressR8(1 downto 0);
+	signal clk, clk_mem : std_logic;
+	signal rw, ce, rst, rst_sync, rst_mode, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, ce_TX, TX_av, TX_ready, RX_av, RX_baud_av, ce_RX: std_logic;
+	signal R8_out, R8_in, addressR8, ram_mem_out, rom_mem_out, data_portA, irq, RX_baud_in, data_TX : std_logic_vector(15 downto 0);
+	signal data_PIC, PIC_irq, data_RX : std_logic_vector(7 downto 0);
+	alias address_peripherals is addressR8(7 downto 4);
+	alias address_registers   is addressR8(1 downto 0);
+	  
+	--signals for MODE_CHANGE_RESET process
+	type RESET_PULSE_STATES is (Sidle, Srst);
+	signal state: RESET_PULSE_STATES;
+	signal mode_rst, last_signal, current_signal : std_logic;
+	
 
 begin
     
     PROCESSOR: entity work.R8(behavioral) 
         port map (
-            clk         => clk_div4, 
+            clk         => clk, 
             rst         => rst, 
             data_in     => R8_in, 
             data_out    => R8_out, 
@@ -44,7 +52,7 @@ begin
             intr 	=> intr                                      -- 
         );
     
-    
+    --32 KB random access memory , contains user program
     RAM : entity work.Memory   
         generic map (
             DATA_WIDTH  => 16,       
@@ -57,7 +65,23 @@ begin
             en          => ce_mem,            -- Memory enable
             address     => addressR8(14 downto 0),
             data_in     => R8_out,
-            data_out    => mem_out
+            data_out    => ram_mem_out
+        );
+	
+	-- 1 KB memory , contains programing mode loader through USART
+	ROM : entity work.Memory_ROM   
+        generic map (
+            DATA_WIDTH  => 16,       
+            ADDR_WIDTH  => 15,         
+            IMAGE       => "memory_images/ROM_BRAM.txt"    
+            )
+        port map(  
+            clk         => clk_mem,
+            wr          => rw_n,              -- Write Enable (1: write; 0: read)
+            en          => ce_mem,            -- Memory enable
+            address     => addressR8(14 downto 0),
+            data_in     => (others => '0'),
+            data_out    => rom_mem_out
         );
         
     PORT_A : entity work.BidirectionalPort
@@ -87,8 +111,9 @@ begin
     generic map(
         IRQ_ID_ADDR     => "00", -- Interruption request number (vector)
         INT_ACK_ADDR    => "01", -- Interrupt acknowledgement address
-        MASK_ADDR       => "10"  -- Mask register address
-    )
+        MASK_ADDR       => "10",  -- Mask register address
+    	IRQ_REG_ADDR    => "11"
+	)
     port map(  
         clk         => clk,
         rst         => rst, 
@@ -117,7 +142,7 @@ begin
     
     UART_RX : entity work.UART_RX
     port map(
-        clk         => board_clock,
+        clk         => clk,
         rst         => rst,
         baud_av     => RX_baud_av,
         baud_in     => RX_baud_in,
@@ -129,17 +154,46 @@ begin
     CLOCK_MANAGER : entity work.ClockManager 
         port map(
           clk_in      => board_clock,
-          clk_div2    => clk,
-          clk_div4    => clk_div4
+          clk_div2    => OPEN,
+          clk_div4    => clk
          );
          
     RESET_SYNCHRONIZER: entity work.ResetSynchonizer 
         port map(
             clk      => clk,
-            rst_in   => board_rst,
+            rst_in   => rst_sync,
             rst_out  => rst
         );
 
+	
+	--sets a 1 clock cycle reset pulse whenever MODE signal changes
+	MODE_CHANGE_RESET:	process(clk, board_rst, mode)
+	begin
+		if board_rst = '1' then
+			last_signal <= mode;
+			current_signal <= mode;
+			mode_rst <= '0';
+			
+		elsif rising_edge(clk) then
+			case state is
+				when Sidle =>
+					last_signal <= current_signal;
+					current_signal <= mode;
+					mode_rst <= '0';
+					if current_signal /= last_signal then 
+						state <= Srst;
+					else
+						state <= Sidle;
+					end if;
+				when Srst =>
+					mode_rst <= '1';
+					state <= Sidle;
+			end case;
+		end if;
+	end process;
+		
+	rst_sync <= mode_rst or board_rst;
+	
     --interrupt interface
     --port_io(3) <= increment_button
     --port_io(2) <= decrement button
@@ -163,7 +217,8 @@ begin
                 x"00" & data_PIC                when rw = '1' and ce_PIC    = '1' else 
                 (0 => TX_ready, others => '0')  when rw = '1' and ce_TX     = '1' else 
                 x"00" & data_RX                 when rw = '1' and ce_RX     = '1' else
-                mem_out;
+				rom_mem_out						when rw = '1' and ce_mem    = '1' and mode = '1' else
+                ram_mem_out;
 
     --memory clock is inverted to work at falling edge borders of the R8 clock
     clk_mem <= not clk;    

@@ -12,7 +12,7 @@ use std.textio.all;
 use work.Util_package.all;
 
 
-entity Memory is
+entity Memory_ROM is
     generic (
         DATA_WIDTH  : integer := 8;         -- Data bus width
         ADDR_WIDTH  : integer := 8;         -- Address bus width
@@ -26,11 +26,11 @@ entity Memory is
         data_in     : in std_logic_vector (DATA_WIDTH-1 downto 0);
         data_out    : out std_logic_vector (DATA_WIDTH-1 downto 0)
     );
-end Memory;
+end Memory_ROM;
 
-architecture BlockRAM of Memory is
+architecture BlockRAM of Memory_ROM is
     
-    type RamType is array (0 to (2**ADDR_WIDTH)-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
+    type RamType is array (0 to 512-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
     
     impure function InitRamFromFile (RamFileName : in string) return RamType is
         --FILE RamFile : text is in RamFileName;

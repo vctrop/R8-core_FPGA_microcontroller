@@ -11,11 +11,15 @@ entity R8_uC_tb is
 end R8_uC_tb;
 
 architecture testbench of R8_uC_tb is
-    
-      signal clk : std_logic := '0';  
-      signal rst: std_logic;
-      signal port_io : std_logic_vector(15 downto 0);
-      signal rx, tx : std_logic;
+  
+
+	signal clk : std_logic := '0';  
+	signal rst: std_logic;
+	signal port_io : std_logic_vector(15 downto 0);
+	signal data_TX, data_RX : std_logic_vector(7 downto 0);
+	signal rx, tx, mode: std_logic;
+	
+	signal TX_av, TX_ready : std_logic;
     
 begin
     
@@ -25,14 +29,42 @@ begin
             board_rst       => rst,
             port_io         => port_io,
             rx              => rx,
-            tx              => tx
+            tx              => tx,
+			mode 			=> mode
         );
-        
-    rx <= tx;
     
+	
+	-- UART_TX : entity work.UART_TX
+    -- generic map(
+        -- FREQ_BAUD_ADDR  => "01",
+        -- TX_DATA_ADDR    => "00"
+    -- )
+    -- port map(
+        -- clk         => clk,
+        -- rst         => rst,
+        -- data_av     => TX_av,
+        -- address     => address_registers,
+        -- data_in     => data_TX,
+        -- tx          => tx,
+        -- ready       => TX_ready
+    -- );
+    
+    -- UART_RX : entity work.UART_RX
+    -- port map(
+        -- clk         => board_clock,
+        -- rst         => rst,
+        -- baud_av     => RX_baud_av,
+        -- baud_in     => RX_baud_in,
+        -- rx          => rx,
+        -- data_out    => data_RX,
+        -- data_av     => RX_av
+    -- );
+	
+    mode <= '0', '1' after 4 us, '0' after 8 us;
     -- Generates the clock signal            
     clk <= not clk after 10 ns;
-    
+    --port_io(3) <= '0', '1' after 20 us, '0' after 30 us;
+	
     -- Generates the reset signal
     rst <='1', '0' after 5 ns;    
     

@@ -20,7 +20,8 @@ entity InterruptController  is
     generic (
         IRQ_ID_ADDR     : std_logic_vector(1 downto 0); -- Interruption request number (vector)
         INT_ACK_ADDR    : std_logic_vector(1 downto 0); -- Interrupt acknowledgement address
-        MASK_ADDR       : std_logic_vector(1 downto 0)  -- Mask register address
+        MASK_ADDR       : std_logic_vector(1 downto 0);  -- Mask register address
+		IRQ_REG_ADDR	: std_logic_vector(1 downto 0)  -- Interruption request register address
     );
     port (  
         clk         : in std_logic;
@@ -95,6 +96,7 @@ begin
     
     data <= "00000" & highPriorityReq when address = IRQ_ID_ADDR and ce = '1' and wr = '0' else
             mask when address = MASK_ADDR and ce = '1' and wr = '0' else
+			irq_reg when address = IRQ_REG_ADDR and ce = '1' and wr = '0' else
             (others=>'Z');
         
 end Behavioral;
