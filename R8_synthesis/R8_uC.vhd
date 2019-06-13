@@ -57,7 +57,7 @@ begin
         generic map (
             DATA_WIDTH  => 16,       
             ADDR_WIDTH  => 15,         
-            IMAGE       => "memory_images/RX_TX_test_BRAM.txt"    
+            IMAGE       => "memory_images/echo_BRAM.txt"    
             )
         port map(  
             clk         => clk_mem,
@@ -170,8 +170,8 @@ begin
 	MODE_CHANGE_RESET:	process(clk, board_rst, mode)
 	begin
 		if board_rst = '1' then
-			last_signal <= mode;
-			current_signal <= mode;
+			last_signal <= '0';
+			current_signal <= '0';
 			mode_rst <= '0';
 			
 		elsif rising_edge(clk) then
