@@ -1,2 +1,2 @@
 vsim -gui -t ps work.r8_uc_tb
-do wave.do
+do wave_disp.do

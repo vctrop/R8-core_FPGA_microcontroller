@@ -95,7 +95,7 @@ boot:
     ldh r8, #80h
 	ldl r8, #12h			; sets PIC interruption mask
 	ldh r9, #00h			
-	ldl r9, #01h            ; only RX can interrupt
+	ldl r9, #02h            ; only RX can interrupt
 	st r9, r8, r0
     
     jmpd #main

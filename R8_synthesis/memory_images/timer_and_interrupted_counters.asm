@@ -3,7 +3,7 @@
 boot:
     
     ; Initiate stack pointer at 7FFFh
-    ldh r0, #7fh
+    ldh r0, #0fh
     ldl r0, #ffh
     ldsp r0
     
@@ -53,9 +53,9 @@ boot:
 	
 	ldh r8, #one_ms_timer
 	ldl r8, #one_ms_timer
-	ldh r6, #61h
-	ldl r6, #A8h
-	st  r6, r8, r0			    ; one_ms_timer <- 25e3
+	ldh r6, #24h
+	ldl r6, #9fh
+	st  r6, r8, r0			    ; one_ms_timer <- 9,375e3
 	
 	
 	ldh r8, #one_s_timer
@@ -202,7 +202,7 @@ increment_handler:
 	debounce_zero_ih:
 	xor r8, r8, r8
 	addi r8, #220
-	st r8, r7, r0						; 	debounce_flag <- debounce_flag + 300	 (ms)
+	st r8, r7, r0						; 	debounce_flag <- debounce_flag + 220	 (ms)
     
     ; call subroutine to increment counter
 	ldh r1, #00h						;
@@ -315,8 +315,8 @@ srt_refresh_timers:
     st r7, r6, r0                   ;   mem[one_ms_timer] <- mem[one_ms_timer] - arg*2
     jmpd #condition_end_rt     
     ms_zero_or_neg:                 ; else
-    ldh r7, #61h                    ;
-    ldl r7, #A8h                    ;
+    ldh r7, #24h                    ;
+    ldl r7, #9fh                    ;
     st r7, r6, r0                   ;   reset one_ms_timer
         
     ldh r6, #one_s_timer            ;

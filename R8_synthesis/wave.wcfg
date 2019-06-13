@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="D:/proj proc/ISE_project/R8_uC_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="numeric_std" />
+            <top_module name="r8_uc_tb" />
+            <top_module name="std_logic_1164" />
+            <top_module name="std_logic_arith" />
+            <top_module name="std_logic_unsigned" />
+            <top_module name="textio" />
+            <top_module name="util_package" />
+            <top_module name="vcomponents" />
+            <top_module name="vital_primitives" />
+            <top_module name="vital_timing" />
+            <top_module name="vpkg" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="43" />
+   <wvobject fp_name="divider42" type="divider">
+      <obj_property name="label">R8</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/regflags" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">regflags[3:0]</obj_property>
+      <obj_property name="ObjectShortName">regflags[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">registerfile[0:15]</obj_property>
+      <obj_property name="ObjectShortName">registerfile[0:15]</obj_property>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[0]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[0]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[1]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[1]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[1]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[2]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[2]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[2]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[3]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[3]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[3]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[4]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[4]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[4]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[5]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[5]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[5]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[6]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[6]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[6]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[7]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[7]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[7]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[8]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[8]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[8]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[9]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[9]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[9]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[10]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[10]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[10]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[11]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[11]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[11]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[12]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[12]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[12]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[13]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[13]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[13]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[14]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[14]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[14]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/registerfile[15]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[15]</obj_property>
+         <obj_property name="ObjectShortName">registerfile[15]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/decodedinstruction" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">decodedinstruction</obj_property>
+      <obj_property name="ObjectShortName">decodedinstruction</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/currentstate" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">currentstate</obj_property>
+      <obj_property name="ObjectShortName">currentstate</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/addressr8" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">addressr8[15:0]</obj_property>
+      <obj_property name="ObjectShortName">addressr8[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider41" type="divider">
+      <obj_property name="label">uC</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/rst" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rst</obj_property>
+      <obj_property name="ObjectShortName">rst</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/mode" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">mode</obj_property>
+      <obj_property name="ObjectShortName">mode</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/rst_sync" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rst_sync</obj_property>
+      <obj_property name="ObjectShortName">rst_sync</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/ce_mem" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ce_mem</obj_property>
+      <obj_property name="ObjectShortName">ce_mem</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/ce_rom" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ce_rom</obj_property>
+      <obj_property name="ObjectShortName">ce_rom</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/ce_io" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ce_io</obj_property>
+      <obj_property name="ObjectShortName">ce_io</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/ce_rx" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ce_rx</obj_property>
+      <obj_property name="ObjectShortName">ce_rx</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/ce_tx" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ce_tx</obj_property>
+      <obj_property name="ObjectShortName">ce_tx</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/tx_ready" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">tx_ready</obj_property>
+      <obj_property name="ObjectShortName">tx_ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/rx_av" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rx_av</obj_property>
+      <obj_property name="ObjectShortName">rx_av</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/intr" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">intr</obj_property>
+      <obj_property name="ObjectShortName">intr</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider30" type="divider">
+      <obj_property name="label">rst pulse</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/state" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">state</obj_property>
+      <obj_property name="ObjectShortName">state</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/mode_rst" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">mode_rst</obj_property>
+      <obj_property name="ObjectShortName">mode_rst</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/last_signal" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">last_signal</obj_property>
+      <obj_property name="ObjectShortName">last_signal</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/current_signal" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">current_signal</obj_property>
+      <obj_property name="ObjectShortName">current_signal</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider52" type="divider">
+      <obj_property name="label">Interrputions</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/trapstatus" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">trapstatus</obj_property>
+      <obj_property name="ObjectShortName">trapstatus</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/PROCESSOR/traprequest" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">traprequest</obj_property>
+      <obj_property name="ObjectShortName">traprequest</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/PIC/mask" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">mask[7:0]</obj_property>
+      <obj_property name="ObjectShortName">mask[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/PIC/irq" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">irq[7:0]</obj_property>
+      <obj_property name="ObjectShortName">irq[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/PIC/pendingrequests" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pendingrequests[7:0]</obj_property>
+      <obj_property name="ObjectShortName">pendingrequests[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/PIC/highpriorityreq" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">highpriorityreq[2:0]</obj_property>
+      <obj_property name="ObjectShortName">highpriorityreq[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider31" type="divider">
+      <obj_property name="label">tx</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/UART_TX/currentstate" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">currentstate</obj_property>
+      <obj_property name="ObjectShortName">currentstate</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/UART_TX/tx_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tx_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">tx_data[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/UART_TX/reg_freq_baud" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reg_freq_baud[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_freq_baud[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/UART_TX/ready" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ready</obj_property>
+      <obj_property name="ObjectShortName">ready</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/UART_TX/tx" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">tx</obj_property>
+      <obj_property name="ObjectShortName">tx</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider32" type="divider">
+      <obj_property name="label">rx</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/UART_RX/currentstate" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">currentstate</obj_property>
+      <obj_property name="ObjectShortName">currentstate</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/UART_RX/rx_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rx_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">rx_data[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/UART_RX/reg_freq_baud" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reg_freq_baud[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_freq_baud[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/UART_RX/data_av" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">data_av</obj_property>
+      <obj_property name="ObjectShortName">data_av</obj_property>
+   </wvobject>
+   <wvobject fp_name="/r8_uc_tb/R8_uC/UART_RX/rx" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rx</obj_property>
+      <obj_property name="ObjectShortName">rx</obj_property>
+   </wvobject>
+</wave_config>

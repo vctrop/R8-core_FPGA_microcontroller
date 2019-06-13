@@ -32,24 +32,33 @@ main:
 	xor r5, r5, r5		            ; memory address index
 	xor r6, r6, r6 		            ; byte indicator, 0 for higher and 1 for lower
 	ldh r10, #80h           
-	ldl r10, #14h		            ; PIC IRQ register address
+	ldl r10, #13h		            ; PIC IRQ register address
 	ldh r11, #80h           
 	ldl r11, #11h 		            ; PIC ACK address
 	ldh r12, #0         
 	ldl r12, #1		                ; 1 constant to send as ack signal (rx_av 
-	ldh r13, #00h           
-	ldl r13, #02h 		            ; interruption mask
 	ldh r14, #80h           
 	ldl r14, #30h		            ; RX address
     xor r7, r7, r7 	                ; reset temporary register
+	
 	main_loop:          
+		; Send FA to tx (simulation only)
+		xor r0, r0, r0
+		ldh r8, #80h
+		ldl r8, #20h
+		ldh r1, #00h
+		ldl r1, #FAh
+		st r1, r8, r0
+				
 		ld r9, r10, r0	            ; check for data_av signal interruption
-		and r9, r9, r13             ; check for interruption
-		addi r9, #0
-		jmpzd #main_loop
-		;ld r9, r14, r0		        ; read data_RX
-		ldh r9, #00h
-        ldl r9, #FAh                ; r9 <- irrelevant number to check for RAM writing
+		subi r9, #02h             	; check for interruption
+		
+		jmpzd #rx_available_main
+		jmpd #main_loop
+		rx_available_main:
+		ld r9, r14, r0		        ; read data_RX
+		;ldh r9, #00h
+        ;ldl r9, #FAh                ; r9 <- irrelevant number to check for RAM writing
         addi r6, #0
 		jmpzd #store_upper_byte
 		;store lower byte
@@ -67,7 +76,7 @@ main:
 			sl0 r9, r9 
 			sl0 r9, r9 
 			sl0 r9, r9 
-			sl0 r9, r9             ; shift tx_data << 8
+			sl0 r9, r9             ; shift rx_data << 8
 			add r7, r9, r0
             st r9, r5, r0           ;store in memory
 			addi r6, #1	            ; set next byte as lower
