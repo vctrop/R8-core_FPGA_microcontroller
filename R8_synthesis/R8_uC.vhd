@@ -26,7 +26,7 @@ end R8_uC;
 architecture structural of R8_uC is
     
 	signal clk, clk_mem : std_logic;
-	signal rw, ce, rst, rst_sync, rst_mode, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, ce_TX, TX_av, TX_ready, RX_av, RX_baud_av, ce_RX: std_logic;
+	signal rw, ce, rst, rst_sync, rst_mode, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, ce_TX, TX_av, TX_ready, RX_av, RX_baud_av, ce_RX, ce_ROM: std_logic;
 	signal R8_out, R8_in, addressR8, ram_mem_out, rom_mem_out, data_portA, irq, RX_baud_in, data_TX : std_logic_vector(15 downto 0);
 	signal data_PIC, PIC_irq, data_RX : std_logic_vector(7 downto 0);
 	alias address_peripherals is addressR8(7 downto 4);
@@ -78,7 +78,7 @@ begin
         port map(  
             clk         => clk_mem,
             wr          => rw_n,              -- Write Enable (1: write; 0: read)
-            en          => ce_mem,            -- Memory enable
+            en          => ce_ROM,            -- Memory enable
             address     => addressR8(14 downto 0),
             data_in     => (others => '0'),
             data_out    => rom_mem_out
@@ -217,7 +217,7 @@ begin
                 x"00" & data_PIC                when rw = '1' and ce_PIC    = '1' else 
                 (0 => TX_ready, others => '0')  when rw = '1' and ce_TX     = '1' else 
                 x"00" & data_RX                 when rw = '1' and ce_RX     = '1' else
-				rom_mem_out						when rw = '1' and ce_mem    = '1' and mode = '1' else
+				rom_mem_out						when              ce_ROM    = '1' else
                 ram_mem_out;
 
     --memory clock is inverted to work at falling edge borders of the R8 clock
@@ -225,6 +225,7 @@ begin
     
     -- write enable decoder:
     ce_mem      <= '1' when ce = '1' and addressR8(15) = '0'            else '0';
+    ce_ROM      <= '1' when ce_mem = '1' and mode = '1' and rw = '1'    else '0';
     ce_io       <= '1' when ce = '1' and addressR8(15) = '1'            else '0';
     ce_portA    <= '1' when ce_io = '1' and address_peripherals = x"0"  else '0';
     ce_PIC      <= '1' when ce_io = '1' and address_peripherals = x"1"  else '0';

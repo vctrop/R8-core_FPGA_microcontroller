@@ -79,14 +79,14 @@ boot:
     xor r0, r0, r0
     ldh r8, #80h
 	ldl r8, #30h			; rx_baud address
-	ldh r9, #0
-	ldl r9, #434
+	ldh r9, #01h
+	ldl r9, #B2h
 	st r9, r8, r0 
 	
 	ldh r8, #80h
 	ldl r8, #21h			; tx_baud address
-	ldh r9, #0
-	ldl r9, #434
+	ldh r9, #01h
+	ldl r9, #B2h
 	st r9, r8, r0 
     
     ; THIS SHOULD BE THE LAST THING BEFORE MAIN:
@@ -118,7 +118,6 @@ ISR:
     push r14
     push r15
     pushf
-
     
     xor r0, r0, r0
     ldh r8, #80h
@@ -154,6 +153,25 @@ ISR:
     rti
 ;end interruption_handler
 
+RX_handler:
+; Objective: reads from RX data port and sends it back through TX data port
+; Argument:NULL
+; Return: NULL
+    xor r0, r0, r0
+    ldh r8, #80h       ; r8 <- &RX_data
+    ldl r8, #30h
+    ld r5, r8, r0     ; r5 <- RX data
+    
+    ; echo read data
+    ldh r8, #80h
+	ldl r8, #20h		                    ; r9 <- TX address
+    wait_for_ready_signal_rx:		
+        ld r7, r8, r0					; read ready signal
+        addi r7, #0						; while(ready != 1) {}
+        jmpzd #wait_for_ready_signal_rx	
+    st r5, r8, r0		                ; write to TX
+rts
+; end RX_handler
 
 TSR:
 ; ATTENTION!! R15 IS NOT PRESERVED BETWEEN TRAP CALLS AND IS CONSIDERED KERNEL REGISTERS
@@ -439,27 +457,6 @@ integer_to_hexstring:
 	pop r10
 	rts
 ;end integer_to_hexstring
-
-
-RX_handler:
-; Objective: reads from RX data port and sends it back through TX data port
-; Argument:NULL
-; Return: NULL
-    xor r0, r0, r0
-    ldh r8, #80h       ; r8 <- &RX_data
-    ldl r8, #30h
-    ld r5, r8, r0     ; r5 <- RX data
-    
-    ; echo read data
-    ldh r8, #80h
-	ldl r8, #20h		                    ; r9 <- TX address
-    wait_for_ready_signal_rx:		
-        ld r7, r8, r0					; read ready signal
-        addi r7, #0						; while(ready != 1) {}
-        jmpzd #wait_for_ready_signal_rx	
-    st r5, r8, r0		                ; write to TX
-rts
-; end RX_handler
     
 ;--------------- END KERNEL FUNCTIONS AND DRIVERS ---------------------------
 

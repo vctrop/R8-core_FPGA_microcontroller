@@ -84,11 +84,11 @@ boot:
     ldl r9, #FCh            ; r9 <= PortA regEnable content
     st r9, r8, r0           ; Write regEnable content on its address
     
-    ldh r8, #80h            ;
-    ldl r8, #03h            ; r8 <= PortA irqEnable address
-    ldh r9, #00h            ; only the push buttons can interrupt
-    ldl r9, #0Ch            ; r8 <= PortA irqEnable content
-    st r9, r8, r0           ; Write irqEnable content on its address
+    ; ldh r8, #80h            ;
+    ; ldl r8, #03h            ; r8 <= PortA irqEnable address
+    ; ldh r9, #00h            ; only the push buttons can interrupt
+    ; ldl r9, #0Ch            ; r8 <= PortA irqEnable content
+    ; st r9, r8, r0           ; Write irqEnable content on its address
     
     ; THIS SHOULD BE THE LAST THING BEFORE MAIN:
     ; set interruption mask
