@@ -96,7 +96,7 @@ boot:
     ldh r8, #80h
 	ldl r8, #12h			; sets PIC interruption mask
 	ldh r9, #00h			
-	ldl r9, #0Ch
+	ldl r9, #C0h			; mask allows the two lower prioriry interruptions pass
 	st r9, r8, r0
     
     jmpd #main
@@ -187,6 +187,7 @@ increment_handler:
 ; Objective: checks for debounce flag, if available, increment debounce flag and increment counter
 ; Argument: NULL
 ; Return: NULL
+	push r10
     xor r0, r0, r0
 	xor r10, r10, r10
 	
@@ -213,12 +214,14 @@ increment_handler:
 	addi r10, #21
 	add r1, r10, r0
 	jsrd #srt_check_time				; check_time(r1)
+	pop r10
 	rts
 
 decrement_handler:
 ; Objective: checks for debounce flag, if available, increment debounce flag and decrement counter
 ; Argument: NULL
 ; Return: NULL
+	push r10
     xor r0, r0, r0
 	xor r10, r10, r10
 	
@@ -245,6 +248,7 @@ decrement_handler:
 	addi r10, #21
 	add r1, r10, r0
 	jsrd #srt_check_time				; check_time(r1)
+	pop r10
 	rts
 ; interruption handling end   
    
