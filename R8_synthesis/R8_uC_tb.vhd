@@ -16,12 +16,12 @@ architecture testbench of R8_uC_tb is
 
 	signal clk : std_logic := '0';  
 	signal rst: std_logic;
-	signal port_io, ram_out : std_logic_vector(15 downto 0);
-	signal data_TX, data_RX : std_logic_vector(7 downto 0);
+	signal port_io, ram_out, data_TX : std_logic_vector(15 downto 0);
+	signal data_RX : std_logic_vector(7 downto 0);
 	signal rx, tx, mode, tx_tb, clk_div4, clk_div4_n, rst_tx, ce_mem: std_logic;
 	signal ram_index : std_logic_vector(14 downto 0);
 	signal TX_av, TX_ready, sendLo : std_logic;
-    
+    signal transfer : std_logic := '0';
     type BIN_TRANSFER_STATES is (Srst, Sidle, SsendHi, SsendLo);
     signal state : BIN_TRANSFER_STATES := Srst;
     
@@ -45,7 +45,7 @@ begin
     )
     port map(
         clk         => clk_div4,
-        rst         => rst_tx,
+        rst         => rst,
         data_av     => TX_av,
         address     => "00",
         data_in     => data_TX,
@@ -64,7 +64,7 @@ begin
             wr          => '0',                     -- Write Enable (1: write; 0: read)
             en          => ce_mem,                  -- Memory enable
             address     => ram_index,
-            data_in     => OPEN,
+            data_in     => (others => '0'),
             data_out    => ram_out
         );
     
@@ -75,58 +75,68 @@ begin
           clk_div4    => clk_div4
          );
          
-    BIN_TRANSFER_SIMULATOR: process (clk_div4, rst)
+    BIN_TRANSFER_SIMULATOR: process (clk_div4, rst, mode, transfer)
     begin
-        if rst = '1' then
+        if rst = '1' or mode = '0' then
             state <= Srst;
             
-        elsif rising_edge(clk_div4) then
+        elsif rising_edge(clk_div4) and transfer = '1' then
             case state is
                 when Srst => 
                     ram_index <= (others => '0');
                     TX_av <= '0';
                     sendLo <= '0';
-                    state = Sidle;
-                    
+					if mode = '1' then 
+						state <= Sidle;
+                    else 
+						state <= Srst;
+					end if;
+					
                 when Sidle =>
                     TX_av <= '0';
-                    if TX_ready = '1' and sendLo = '0' then
-                        state = SsendHi;
+					
+					if unsigned(ram_index) >= 6 then			-- mudar isso pra dizer o numero de linhas a se transferir
+						state <= Sidle;
+					elsif TX_ready = '1' and sendLo = '0' then
+                        state <= SsendHi;
                     elsif TX_ready = '1' and sendLo = '1' then
-                        state = SsendLo;
+                        state <= SsendLo;
                     else
-                        state = Sidle;
+                        state <= Sidle;
                     end if;
                 
                 when SsendHi =>
                     TX_av <= '1';
-                    sendLo <= '1';
                     
-                    if unsigned(ram_index) >= 32767 then
-                        state = Srst;
-                    else
-                        state = Sidle;
+                   
+                    if TX_ready = '0' then
+                        state <= Sidle;
+						sendLo <= '1';
+					else
+						state <= SsendHi;
                     end if;
 
                 when SsendLo =>
-                    ram_index <= std_logic_vector(unsigned(ram_index) + 1);
                     TX_av <= '1';
-                    sendLo <= '0';
-                    if unsigned(ram_index) >= 32767 then
-                        state = Srst;
-                    else
-                        state = Sidle;
+               
+                    if TX_ready = '0' then
+						sendLo <= '0';
+                        state <= Sidle;
+						ram_index <= std_logic_vector(unsigned(ram_index) + 1);
+					else
+						state <= SsendLo;
                     end if;   
             end case;
-            end if;
         end if;
     end process;
         
-    data_TX <= ram_out(7 downto 0) when sendLo = '1' else ram_out(15 downto 8) ;
+	data_tx(15 downto 8) <= (others=>'0');
+    data_TX(7 downto 0) <= ram_out(7 downto 0) when sendLo = '1' else ram_out(15 downto 8) ;
     ce_mem <= '1' when state = SsendHi or state = SsendLo else '0';
      
     clk_div4_n <= not clk_div4;
-     
+    
+	transfer <= '0', '1' after 40 us;
      
 	DISP: entity work.Display_simulator
 	port map(
@@ -134,7 +144,7 @@ begin
 		digit    => OPEN
 	);
     
-    mode <= '0';
+    mode <= '0', '1' after 5 us, '0' after 400 us;
     -- Generates the clock signal            
     clk <= not clk after 10 ns;
     port_io(3) <= '0', '1' after 40 us, '0' after 80 us;

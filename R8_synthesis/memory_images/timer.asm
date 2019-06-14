@@ -2,9 +2,9 @@
 .code
 boot:
     
-    ; Initiate stack pointer at 7FFFh
-    ldh r0, #0fh
-    ldl r0, #ffh
+    ; Initiate stack pointer at 1500
+    ldh r0, #05h
+    ldl r0, #DCh
     ldsp r0
     
     ldh r0, #ISR

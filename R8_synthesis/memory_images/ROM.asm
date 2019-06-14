@@ -11,18 +11,18 @@ boot:
 	; SET BAUD RATE
 	
 	; SET RX BAUD RATE HERE!! CHANGE THIS LASTERRRRRRRRRRRRRRRRRRRR
-    ;434  -- floor (25e6 / 57600)
+    ;217  -- floor (25e6 / 115200)
     xor r0, r0, r0
     ldh r8, #80h
 	ldl r8, #30h			        ; rx_baud address
-	ldh r9, #0Ah
-	ldl r9, #2Ch
-	st r9, r8, r0 
+	ldh r9, #00h
+	ldl r9, #D9h
+	st r9, r8, r0 	
 	
 	ldh r8, #80h
 	ldl r8, #21h			        ; tx_baud address
-	ldh r9, #0Ah
-	ldl r9, #2Ch
+	ldh r9, #00h
+	ldl r9, #D9h
 	st r9, r8, r0 
     
     jmpd #main
@@ -39,17 +39,12 @@ main:
 	ldl r12, #1		                ; 1 constant to send as ack signal (rx_av 
 	ldh r14, #80h           
 	ldl r14, #30h		            ; RX address
+	ldh r8, #80h
+	ldl r8, #20h			        ; tx_data address
+	
     xor r7, r7, r7 	                ; reset temporary register
 	
 	main_loop:          
-		; Send FA to tx (simulation only)
-		; xor r0, r0, r0
-		; ldh r8, #80h
-		; ldl r8, #20h
-		; ldh r1, #00h
-		; ldl r1, #FAh
-		; st r1, r8, r0
-				
 		ld r9, r10, r0	            ; check for data_av signal interruption
 		subi r9, #02h             	; check for interruption
 		
@@ -57,18 +52,42 @@ main:
 		jmpd #main_loop
 		rx_available_main:
 		ld r9, r14, r0		        ; read data_RX
-		;ldh r9, #00h
-        ;ldl r9, #FAh                ; r9 <- irrelevant number to check for RAM writing
         addi r6, #0
 		jmpzd #store_upper_byte
 		;store lower byte
 			or r9, r9, r7 		    ; combine upper and lower byte
 			st r9, r5, r0		    ; store in memory
+			
+			wait_for_ready_signal_lower1:		
+				ld r13, r8, r0					; read ready signal
+				addi r13, #0						; while(ready != 1) {}
+				jmpzd #wait_for_ready_signal_lower1			
+			st r9, r8, r0		                ; write to TX
+			
+			wait_for_ready_signal_lower2:		
+				ld r13, r8, r0					; read ready signal
+				addi r13, #0						; while(ready != 1) {}
+				jmpzd #wait_for_ready_signal_lower2			
+			ldl r15, #13						; send \r
+			st r15, r8, r0		                ; write to TX
+			
+			wait_for_ready_signal_lower3:		
+				ld r13, r8, r0					; read ready signal
+				addi r13, #0						; while(ready != 1) {}
+				jmpzd #wait_for_ready_signal_lower3		
+			ldl r15, #10						; send \n
+			st r15, r8, r0		                ; write to TX
+			
 			addi r5, #1 
 			xor r6, r6, r6		    ; set next byte as higher 
             xor r7, r7, r7 	        ; reset temporary register
 			jmpd #send_ack  
-		store_upper_byte:   
+		store_upper_byte:  
+			wait_for_ready_signal_upper:		
+				ld r13, r8, r0					; read ready signal
+				addi r13, #0						; while(ready != 1) {}
+				jmpzd #wait_for_ready_signal_upper			
+			st r9, r8, r0		                ; write to TX
 			sl0 r9, r9 
 			sl0 r9, r9 
 			sl0 r9, r9 
