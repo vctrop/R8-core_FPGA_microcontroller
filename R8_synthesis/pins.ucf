@@ -1,5 +1,6 @@
 net "board_clock" loc = V10;
-net "board_rst" loc = B8;
+//net "board_rst" loc = B8;
+net "board_rst" loc = T10;
 
 //Rightmost display is 0
 net "port_io[7]" loc = P17;
