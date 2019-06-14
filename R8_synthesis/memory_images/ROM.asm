@@ -15,14 +15,14 @@ boot:
     xor r0, r0, r0
     ldh r8, #80h
 	ldl r8, #30h			        ; rx_baud address
-	ldh r9, #01h
-	ldl r9, #B2h
+	ldh r9, #0Ah
+	ldl r9, #2Ch
 	st r9, r8, r0 
 	
 	ldh r8, #80h
 	ldl r8, #21h			        ; tx_baud address
-	ldh r9, #01h
-	ldl r9, #B2h
+	ldh r9, #0Ah
+	ldl r9, #2Ch
 	st r9, r8, r0 
     
     jmpd #main
@@ -43,12 +43,12 @@ main:
 	
 	main_loop:          
 		; Send FA to tx (simulation only)
-		xor r0, r0, r0
-		ldh r8, #80h
-		ldl r8, #20h
-		ldh r1, #00h
-		ldl r1, #FAh
-		st r1, r8, r0
+		; xor r0, r0, r0
+		; ldh r8, #80h
+		; ldl r8, #20h
+		; ldh r1, #00h
+		; ldl r1, #FAh
+		; st r1, r8, r0
 				
 		ld r9, r10, r0	            ; check for data_av signal interruption
 		subi r9, #02h             	; check for interruption

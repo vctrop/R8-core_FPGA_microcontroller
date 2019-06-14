@@ -79,14 +79,14 @@ boot:
     xor r0, r0, r0
     ldh r8, #80h
 	ldl r8, #30h			; rx_baud address
-	ldh r9, #01h
-	ldl r9, #B2h
+	ldh r9, #0Ah
+	ldl r9, #2Ch
 	st r9, r8, r0 
 	
 	ldh r8, #80h
 	ldl r8, #21h			; tx_baud address
-	ldh r9, #01h
-	ldl r9, #B2h
+	ldh r9, #0Ah
+	ldl r9, #2Ch
 	st r9, r8, r0 
     
     ; THIS SHOULD BE THE LAST THING BEFORE MAIN:
