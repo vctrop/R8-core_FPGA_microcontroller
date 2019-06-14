@@ -3,8 +3,8 @@
 boot:
     
     ; Initiate stack pointer at 1500
-    ldh r0, #05h
-    ldl r0, #DCh
+    ldh r0, #0fh
+    ldl r0, #ffh
     ldsp r0
     
     ldh r0, #ISR

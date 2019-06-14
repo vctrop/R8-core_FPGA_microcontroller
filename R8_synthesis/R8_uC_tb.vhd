@@ -144,7 +144,7 @@ begin
 		digit    => OPEN
 	);
     
-    mode <= '0', '1' after 5 us, '0' after 400 us;
+    mode <= '0', '1' after 5 us, '0' after 1000 us;
     -- Generates the clock signal            
     clk <= not clk after 10 ns;
     port_io(3) <= '0', '1' after 40 us, '0' after 80 us;

@@ -1,11 +1,11 @@
 .code
 boot:
-    ldh r0, #main
-    ldl r0, #main
+    ldh r0, #main_loop
+    ldl r0, #main_loop
     ldisra r0
 	
-	ldh r0, #main
-	ldl r0, #main
+	ldh r0, #main_loop
+	ldl r0, #main_loop
 	ldtsra r0
 	
 	; SET BAUD RATE
@@ -30,6 +30,8 @@ boot:
 main:
 	xor r0, r0, r0
 	xor r5, r5, r5		            ; memory address index
+	;ldh r5, #01h
+	;ldl r5, #2ch
 	xor r6, r6, r6 		            ; byte indicator, 0 for higher and 1 for lower
 	ldh r10, #80h           
 	ldl r10, #13h		            ; PIC IRQ register address
@@ -64,25 +66,29 @@ main:
 				jmpzd #wait_for_ready_signal_lower1			
 			st r9, r8, r0		                ; write to TX
 			
-			wait_for_ready_signal_lower2:		
-				ld r13, r8, r0					; read ready signal
-				addi r13, #0						; while(ready != 1) {}
-				jmpzd #wait_for_ready_signal_lower2			
-			ldl r15, #13						; send \r
-			st r15, r8, r0		                ; write to TX
+			; wait_for_ready_signal_lower2:		
+				; ld r13, r8, r0					; read ready signal
+				; addi r13, #0						; while(ready != 1) {}
+				; jmpzd #wait_for_ready_signal_lower2			
+			; ldl r15, #13						; send \r
+			; st r15, r8, r0		                ; write to TX
 			
-			wait_for_ready_signal_lower3:		
-				ld r13, r8, r0					; read ready signal
-				addi r13, #0						; while(ready != 1) {}
-				jmpzd #wait_for_ready_signal_lower3		
-			ldl r15, #10						; send \n
-			st r15, r8, r0		                ; write to TX
+			; wait_for_ready_signal_lower3:		
+				; ld r13, r8, r0					; read ready signal
+				; addi r13, #0						; while(ready != 1) {}
+				; jmpzd #wait_for_ready_signal_lower3		
+			; ldl r15, #10						; send \n
+			; st r15, r8, r0		                ; write to TX
 			
 			addi r5, #1 
+			ldh r7, #75h
+			ldl r7, #30h
+			sub r7, r7, r5			; if (r5 > 30000) halt
+			jmpnd #halt_main
 			xor r6, r6, r6		    ; set next byte as higher 
             xor r7, r7, r7 	        ; reset temporary register
 			jmpd #send_ack  
-		store_upper_byte:  
+			store_upper_byte:  
 			wait_for_ready_signal_upper:		
 				ld r13, r8, r0					; read ready signal
 				addi r13, #0						; while(ready != 1) {}
@@ -102,4 +108,6 @@ main:
 		send_ack:   
 		st r12, r11, r0 	        ; send ack signal to PIC
 		jmpd #main_loop
+		halt_main:
+			halt
 .endcode

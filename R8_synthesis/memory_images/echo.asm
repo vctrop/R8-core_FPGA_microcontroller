@@ -2,9 +2,9 @@
 .code
 boot:
     
-    ; Initiate stack pointer at 1500
-	ldh r0, #05h
-    ldl r0, #DCh
+    ; Initiate stack pointer at 4095
+	ldh r0, #0Fh
+    ldl r0, #FFh
     ldsp r0
     
     ldh r0, #ISR
@@ -79,14 +79,14 @@ boot:
     xor r0, r0, r0
     ldh r8, #80h
 	ldl r8, #30h			; rx_baud address
-	ldh r9, #0Ah
-	ldl r9, #2Ch
+	ldh r9, #00h
+	ldl r9, #D9h
 	st r9, r8, r0 
 	
 	ldh r8, #80h
 	ldl r8, #21h			; tx_baud address
-	ldh r9, #0Ah
-	ldl r9, #2Ch
+	ldh r9, #00h
+	ldl r9, #D9h
 	st r9, r8, r0 
     
     ; THIS SHOULD BE THE LAST THING BEFORE MAIN:
