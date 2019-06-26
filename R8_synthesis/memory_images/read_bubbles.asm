@@ -64,6 +64,20 @@ boot:
 	ldh r9, #integer_to_hexstring
 	ldl r9, #integer_to_hexstring
 	st r9, r8, r0					; swi[2] = integer_to_hexstring
+    
+    addi r0, #1
+    ldh r8, #swi_handlers
+    ldl r8, #swi_handlers
+    ldh r9, #string_to_integer
+    ldl r9, #string_to_integer
+    st r9, r8, r0
+    
+    addi r0, #1
+    ldh r8, #swi_handlers
+    ldl r8, #swi_handlers
+    ldh r9, #read_buffer
+    ldl r9, #read_buffer
+    st r9, r8, r0
 	
     ;interruption handlers for increment and decrement buttons
     xor r0, r0, r0
@@ -75,7 +89,7 @@ boot:
 	st r9, r8, r0 
     
 	;set baud rate for USART comunications
-    ;434  -- floor (25e6 / 57600)
+    ;217  -- floor (25e6 / 115200)
     xor r0, r0, r0
     ldh r8, #80h
 	ldl r8, #30h			; rx_baud address
@@ -89,7 +103,7 @@ boot:
 	ldl r9, #D9h
 	st r9, r8, r0 
     
-    ; THIS SHOULD BE THE LAST THING BEFORE MAIN:
+    ; THIS MUST BE THE LAST THING BEFORE MAIN:
     ; set interruption mask
     xor r0, r0, r0
     ldh r8, #80h
@@ -164,13 +178,67 @@ RX_handler:
     
     ; echo read data
     ldh r8, #80h
-	ldl r8, #20h		                    ; r9 <- TX address
+	ldl r8, #20h		                ; r9 <- TX address
     wait_for_ready_signal_rx:		
         ld r7, r8, r0					; read ready signal
         addi r7, #0						; while(ready != 1) {}
         jmpzd #wait_for_ready_signal_rx	
     st r5, r8, r0		                ; write to TX
-rts
+    
+    ; store received data in rx buffer
+    ldh r8, #rx_buffer
+    ldl r8, #rx_buffer                  
+    ldh r7, #rx_buffer_index            ;
+    ldl r7, #rx_buffer_index            ;
+    ld r6, r7, r0                       ; r6 <- rx_buffer_index
+    
+    ldh r12, #rx_buffer_byte
+    ldl r12, #rx_buffer_byte
+    ld r13, r12, r0
+    addi r13, #0
+    jmpzd #store_upper_byte_rx
+    ; store_lower_byte_rx:
+        ldh r11, #00h
+        ldl r11, #FFh
+        and r5, r5, r11                 ; r5 <- lower byte of RX DATA
+        ld r9, r8, r6                   ; r9 <- rx_buffer[index] (hi)
+        or r9, r9, r5                   ; 
+        st r9, r8, r6                   ; rx_buffer[index] <- rx_buffer[index](hi) OR TX_DATA(lo)
+        
+        addi r6, #1                     ;
+        st r6, r7, r0                   ; rx_buffer_index++
+        st r0, r12, r0                  ; rx_buffer_byte <- 0
+    jmpd #store_end_rx
+    store_upper_byte_rx:
+        sl0, r5, r5
+        sl0, r5, r5
+        sl0, r5, r5
+        sl0, r5, r5
+        sl0, r5, r5
+        sl0, r5, r5
+        sl0, r5, r5
+        sl0, r5, r5
+        st r5, r8, r6                   ; rx_buffer[index] <- RX DATA
+        addi r13, #1
+        st r13, r12, r0                 ; rx_buffer_byte <- 1
+    store_end_rx:
+    
+    ; Check for <enter>
+    ldh r11, #0
+    ldl r11, #10
+    xor r11, r5, r11
+    jmpzd #finish_buffer_rx             ;
+    jmpd #handler_end_rx                ; If RX DATA is Line Feed, finish buffer and set flag
+    finish_buffer_rx:
+    st r0, r8, r6                       ; rx_buffer[index+1] <- 0
+    st r0, r7, r0                       ; index <- 0
+    ldh r8, #rx_buffer_ready
+    ldl r8, #rx_buffer_ready
+    addi r11, #1                         ;
+    st r11, r8, r0                       ; rx_buffer_ready <- 1
+    
+    handler_end_rx:
+    rts
 ; end RX_handler
 
 TSR:
@@ -298,6 +366,14 @@ tsr_swi:
 ; Objective: jumps to handler based on value from r14, set before system call
 ; Argument: r14 <- handler number, r1 <- first argument of called function, r2 <- second argument of called function
 ; Return: NULL
+
+; List of system calls:
+; 0 - print_string
+; 1 - integer_to_string
+; 2 - integer_to_hexstring
+; 3 - string_to_integer
+; 4 - read_buffer
+
 	ldh r5, #swi_handlers
 	ldl r5, #swi_handlers
 	ld r5, r14, r5
@@ -305,6 +381,7 @@ tsr_swi:
 	rts
 ;end tsr_swi
 
+; ------------------- SYSTEM CALLS ---------------------
 print_string:
 ; Objective: sends a NULL TERMINATED STRING to serial port
 ; Argument: r1 <- &string
@@ -458,16 +535,7 @@ integer_to_hexstring:
 	rts
 ;end integer_to_hexstring
     
-
-read_buffer:
-; Objective: tries to read from RX data buffer, returns 0 if no data is available, else copies n bytes to indicated address
-; Argument: r1 <- &string, r2 <- n
-; Return: 1 on success, 0 on failure.
-	rts
-;end read_buffer
-
-
-string_to_integer:,
+string_to_integer:
 ; Objective: converts string to unsigned integer value
 ; Argument: r1 <- &string
 ; Return: -1 on failure, converted value on sucess
@@ -518,8 +586,14 @@ string_to_integer:,
 		rts
 ;end string_to_integer
 
+read_buffer:
+; Objective: tries to read from RX data buffer, returns 0 if ENTER was not pressed yet, else copies n bytes to indicated address
+; Argument: r1 <- &string, r2 <- n
+; Return: 1 on success, 0 on failure.
+	rts
+;end read_buffer
 
-; THIS IS NOT A SYSCALL BUT INTEAD A HELPER FUNCTION
+; THIS IS NOT A SYSCALL BUT INSTEAD A HELPER FUNCTION
 strlen:
 ; Objective: counts number of characters in NULL TERMINATED string vector, excluding the terminator byte
 ; Argument: r1 <- &string
@@ -580,13 +654,8 @@ print_array:
     do_while_end:
 	
 	; print new line
-    ldh r1, #line_feed
-	ldl r1, #line_feed
-	ldh r14, #0
-	ldl r14, #0
-	swi 			; print_string
-	ldh r1, #carriage_return
-	ldl r1, #carriage_return
+    ldh r1, #new_line
+	ldl r1, #new_line
 	ldh r14, #0
 	ldl r14, #0
 	swi 			; print_string
@@ -686,17 +755,25 @@ main:
 .org #1000
 .data
     ; KERNEL MEMORY SPACE
-	irq_handlers: 	    db #0, #0, #0, #0, #0, #0, #0, #0
-	tsr_handlers:		db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
-	swi_handlers: 		db #0, #0, #0, #0
-		;error message strings
-	inv_instruction_msg: db #49h, #6eh, #76h, #61h, #6ch, #69h, #64h, #20h, #69h, #6eh, #73h, #74h, #72h, #75h, #63h, #74h, #69h, #6fh, #6eh, #20h, #66h, #6fh, #75h, #6eh, #64h, #20h, #6fh, #6eh, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
-    ov_msg:				db #4fh, #76h, #65h, #72h, #66h, #6ch, #6fh, #77h, #20h, #6fh, #63h, #63h, #75h, #72h, #65h, #64h, #20h, #61h, #74h, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
-	div_zero_msg:		db #44h, #69h, #76h, #69h, #73h, #69h, #6fh, #6eh, #20h, #62h, #79h, #20h, #7ah, #65h, #72h, #6fh, #20h, #6fh, #63h, #63h, #75h, #72h, #65h, #64h, #20h, #6fh, #6eh, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
+        ; interrupt vector arrays
+	irq_handlers: 	        db #0, #0, #0, #0, #0, #0, #0, #0
+	tsr_handlers:		    db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
+	swi_handlers: 		    db #0, #0, #0, #0, #0
+        ; input buffer
+    rx_buffer:              db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
+    rx_buffer_ready:        db #0
+    rx_buffer_index:        db #0
+    rx_buffer_byte:         db #0    
+        ;error message strings
+	inv_instruction_msg:    db #49h, #6eh, #76h, #61h, #6ch, #69h, #64h, #20h, #69h, #6eh, #73h, #74h, #72h, #75h, #63h, #74h, #69h, #6fh, #6eh, #20h, #66h, #6fh, #75h, #6eh, #64h, #20h, #6fh, #6eh, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
+    ov_msg:				    db #4fh, #76h, #65h, #72h, #66h, #6ch, #6fh, #77h, #20h, #6fh, #63h, #63h, #75h, #72h, #65h, #64h, #20h, #61h, #74h, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
+	div_zero_msg:		    db #44h, #69h, #76h, #69h, #73h, #69h, #6fh, #6eh, #20h, #62h, #79h, #20h, #7ah, #65h, #72h, #6fh, #20h, #6fh, #63h, #63h, #75h, #72h, #65h, #64h, #20h, #6fh, #6eh, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
 		; temporary strings 
-	kernel_hex_string: 	db #0, #0, #0, #0, #0, #0, #0, #0
-	new_line:		    db #13, #10, #0
-	space:				db #20h, #0
-	; USER MEMORY SPACE
-    vector:     		db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 
+	kernel_hex_string: 	    db #0, #0, #0, #0, #0, #0, #0, #0
+	new_line:		        db #13, #10, #0
+	space:				    db #20h, #0
+	
+    ; USER MEMORY SPACE
+    vector:     		    db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 
+    string:                 db #0, #0, #0, #0, #0, #0, #0
 .enddata

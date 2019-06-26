@@ -30,8 +30,8 @@ boot:
 main:
 	xor r0, r0, r0
 	;xor r5, r5, r5		            ; memory address index
-	ldh r5, #01h
-	ldl r5, #2ch
+	ldh r5, #00h
+	ldl r5, #00h
 	xor r6, r6, r6 		            ; byte indicator, 0 for higher and 1 for lower
 	ldh r10, #80h           
 	ldl r10, #13h		            ; PIC IRQ register address

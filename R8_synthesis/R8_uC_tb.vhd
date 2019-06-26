@@ -57,7 +57,7 @@ begin
         generic map (
             DATA_WIDTH  => 16,       
             ADDR_WIDTH  => 15,         
-            IMAGE       => "memory_images/echo_BRAM.txt"    
+            IMAGE       => "memory_images/test_rx_BRAM.txt"    
             )
         port map(  
             clk         => clk_div4_n,
@@ -77,7 +77,8 @@ begin
          
     BIN_TRANSFER_SIMULATOR: process (clk_div4, rst, mode, transfer)
     begin
-        if rst = '1' or mode = '0' then
+        -- if rst = '1' or mode = '0' then      -- USAGE: DATA TRANSFER ON PROGRAMMING MODE
+        if rst = '1' then                       -- USAGE: DATA TRANSFER ON EXECUTION MODE
             state <= Srst;
             
         elsif rising_edge(clk_div4) and transfer = '1' then
@@ -86,16 +87,18 @@ begin
                     ram_index <= (others => '0');
                     TX_av <= '0';
                     sendLo <= '0';
-					if mode = '1' then 
-						state <= Sidle;
-                    else 
-						state <= Srst;
-					end if;
-					
+                    
+					-- if mode = '1' then       -- USAGE: DATA TRANSFET ON PROGRAMMING MODE    
+						-- state <= Sidle;
+                    -- else 
+						-- state <= Srst;
+                    -- end if;
+                    state <= Sidle;             -- USAGE: DATA TRANSFER ON EXECUTION MODE
+                        
                 when Sidle =>
                     TX_av <= '0';
 					
-					if unsigned(ram_index) >= 6 then			-- mudar isso pra dizer o numero de linhas a se transferir
+					if unsigned(ram_index) >= 10 then			-- mudar isso pra dizer o numero de linhas a se transferir
 						state <= Sidle;
 					elsif TX_ready = '1' and sendLo = '0' then
                         state <= SsendHi;
@@ -130,25 +133,19 @@ begin
         end if;
     end process;
         
-	data_tx(15 downto 8) <= (others=>'0');
+	data_TX(15 downto 8) <= (others=>'0');
     data_TX(7 downto 0) <= ram_out(7 downto 0) when sendLo = '1' else ram_out(15 downto 8) ;
     ce_mem <= '1' when state = SsendHi or state = SsendLo else '0';
      
     clk_div4_n <= not clk_div4;
     
 	transfer <= '0', '1' after 40 us;
-     
-	DISP: entity work.Display_simulator
-	port map(
-        segment  => port_io(15 downto 8),
-		digit    => OPEN
-	);
-    
-    mode <= '0', '1' after 5 us, '0' after 1000 us;
+        
+    mode <= '0';--, '1' after 5 us, '0' after 1000 us;
     -- Generates the clock signal            
     clk <= not clk after 10 ns;
-    port_io(3) <= '0', '1' after 40 us, '0' after 80 us;
-	port_io(2) <= '0', '1' after 40 us, '0' after 80 us;
+    --port_io(3) <= '0', '1' after 40 us, '0' after 80 us;
+	--port_io(2) <= '0', '1' after 40 us, '0' after 80 us;
     -- Generates the reset signal
     rst <='1', '0' after 5 ns;    
     
