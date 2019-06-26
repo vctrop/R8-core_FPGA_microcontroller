@@ -168,7 +168,7 @@ ISR:
 ;end interruption_handler
 
 RX_handler:
-; Objective: reads from RX data port and sends it back through TX data port
+; Objective: reads data from RX, echoes it to TX and received string in kernel buffer 
 ; Argument:NULL
 ; Return: NULL
     xor r0, r0, r0
@@ -210,15 +210,15 @@ RX_handler:
         st r0, r12, r0                  ; rx_buffer_byte <- 0
     jmpd #store_end_rx
     store_upper_byte_rx:
-        sl0, r5, r5
-        sl0, r5, r5
-        sl0, r5, r5
-        sl0, r5, r5
-        sl0, r5, r5
-        sl0, r5, r5
-        sl0, r5, r5
-        sl0, r5, r5
-        st r5, r8, r6                   ; rx_buffer[index] <- RX DATA
+        sl0, r9, r5
+        sl0, r9, r9
+        sl0, r9, r9
+        sl0, r9, r9
+        sl0, r9, r9
+        sl0, r9, r9
+        sl0, r9, r9
+        sl0, r9, r9
+        st r9, r8, r6                   ; rx_buffer[index] <- RX DATA
         addi r13, #1
         st r13, r12, r0                 ; rx_buffer_byte <- 1
     store_end_rx:
@@ -588,9 +588,87 @@ string_to_integer:
 
 read_buffer:
 ; Objective: tries to read from RX data buffer, returns 0 if ENTER was not pressed yet, else copies n bytes to indicated address
-; Argument: r1 <- &string, r2 <- n
-; Return: 1 on success, 0 on failure.
-	rts
+; Argument: r1 <- &buffer, r2 <- size
+; Return: r3 <- [num of buffered characters] on success, 0 on failure.
+    xor r0, r0, r0
+    xor r3, r3, r3
+    ldh r5, #rx_buffer_ready        ;
+    ldl r5, #rx_buffer_ready        ;
+    ld r5, r5, r0                   ;
+    addi r5, #0                     ;
+    jmpzd #return_rb                ; if rx_buffer_ready == 0, return 0
+    
+    add r11, r2, r0                 ; r11 <- size
+    ; r3 (return value) will be used as cont, being incremented in the end independently of <enter> detection
+    for_loop_rb:                        ; for(cont = 0, cont < size, cont ++)    
+        xor r12, r12, r12               ; break flag <- 0
+        xor r5, r3, r11                 ; 
+        jmpzd #return_rb                ; if cont == r11, break
+        ldh r5, #0
+        ldl r5, #2
+        div r3, r5
+        mfl r6                          ; r6 <- cont%2 (byte)
+        mfh r7                          ; r7 <- cont/2 (index)
+        ldh r8, #rx_buffer              ;
+        ldl r8, #rx_buffer              ;
+        ld r8, r8, r7                   ; r8 <- rx_buffer[index]
+        addi r6, #0
+        jmpzd #mask_hi_rb
+        ; mask_lo_rb:
+            ldh r9, #00h
+            ldl r9, #FFh
+            and r8, r8, r9              ; r8 <- lo_mask(rx_buffer[index])
+            
+            ldh r9, #00h                ;
+            ldl r9, #0Ah                ;    
+            xor r9, r8, r9              ;    
+            jmpzd #enter_detected_lo_rb ;
+            ldh r9, #00h                ;
+            ldl r9, #0Dh                ;
+            xor r9, r8, r9              ;
+            jmpzd #enter_detected_lo_rb ; if lo_mask(rx_buffer[index]) == 000Ah or lo_mask(rx_buffer[index]) == 000Dh
+            jmpd #concatenate_lo_rb
+            enter_detected_lo_rb:
+                xor r8, r8, r8          ; lo_mask(rx_buffer[index]) <- 0
+                addi r12, #1            ; break_flag <- 1
+            concatenate_lo_rb:
+                ld r10, r1, r7              ; r10 <- usr_buffer[index]
+                ldh r9, #FFh
+                ldl r9, #00h
+                and r10, r10, r9            ;    
+                or r8, r10, r8              ; r8 <- hi_mask(usr_buffer[index]) OR lo_mask(rx_buffer[index])
+                jmpd #store_data_rb
+            
+        mask_hi_rb:
+            ldh r9, #FFh
+            ldl r9, #00h
+            and r8, r8, r9              ; r8 <- hi_mask(rx_buffer[index])
+            
+            ldh r9, #0Ah                ;
+            ldl r9, #00h                ;    
+            xor r9, r8, r9              ;    
+            jmpzd #enter_detected_hi_rb ;
+            ldh r9, #0Dh                ;
+            ldl r9, #00h                ;
+            xor r9, r8, r9              ;
+            jmpzd #enter_detected_hi_rb ; if lo_mask(rx_buffer[index]) == 000Ah or lo_mask(rx_buffer[index]) == 000Dh
+            jmpd #store_data_rb
+            enter_detected_hi_rb:
+                xor r8, r8, r8
+                addi r12, #1
+            
+        store_data_rb:
+            st r8, r1, r7
+            addi r3, #1
+            addi r12, #0
+            jmpzd #for_loop_rb
+            add r11, r3, r0
+            
+        jmpd #for_loop_rb
+    
+    return_rb:
+    
+    rts
 ;end read_buffer
 
 ; THIS IS NOT A SYSCALL BUT INSTEAD A HELPER FUNCTION
@@ -760,11 +838,11 @@ main:
 	tsr_handlers:		    db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 	swi_handlers: 		    db #0, #0, #0, #0, #0
         ; input buffer
-    rx_buffer:              db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
+    rx_buffer:              db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0,
     rx_buffer_ready:        db #0
     rx_buffer_index:        db #0
     rx_buffer_byte:         db #0    
-        ;error message strings
+        ; error message strings
 	inv_instruction_msg:    db #49h, #6eh, #76h, #61h, #6ch, #69h, #64h, #20h, #69h, #6eh, #73h, #74h, #72h, #75h, #63h, #74h, #69h, #6fh, #6eh, #20h, #66h, #6fh, #75h, #6eh, #64h, #20h, #6fh, #6eh, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
     ov_msg:				    db #4fh, #76h, #65h, #72h, #66h, #6ch, #6fh, #77h, #20h, #6fh, #63h, #63h, #75h, #72h, #65h, #64h, #20h, #61h, #74h, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
 	div_zero_msg:		    db #44h, #69h, #76h, #69h, #73h, #69h, #6fh, #6eh, #20h, #62h, #79h, #20h, #7ah, #65h, #72h, #6fh, #20h, #6fh, #63h, #63h, #75h, #72h, #65h, #64h, #20h, #6fh, #6eh, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
@@ -774,6 +852,7 @@ main:
 	space:				    db #20h, #0
 	
     ; USER MEMORY SPACE
-    vector:     		    db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 
+    user_buffer:            db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
     string:                 db #0, #0, #0, #0, #0, #0, #0
+    vector:     		    db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 
 .enddata
