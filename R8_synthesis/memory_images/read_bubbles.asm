@@ -594,9 +594,10 @@ read_buffer:
     xor r3, r3, r3
     ldh r5, #rx_buffer_ready        ;
     ldl r5, #rx_buffer_ready        ;
-    ld r5, r5, r0                   ;
-    addi r5, #0                     ;
+    ld r6, r5, r0                   ;
+    addi r6, #0                     ;
     jmpzd #return_rb                ; if rx_buffer_ready == 0, return 0
+    st r0, r5, r0                   ; rx_buffer_ready <- 0
     
     add r11, r2, r0                 ; r11 <- size
     ; r3 (return value) will be used as cont, being incremented in the end independently of <enter> detection
@@ -629,7 +630,7 @@ read_buffer:
             jmpzd #enter_detected_lo_rb ; if lo_mask(rx_buffer[index]) == 000Ah or lo_mask(rx_buffer[index]) == 000Dh
             jmpd #concatenate_lo_rb
             enter_detected_lo_rb:
-                xor r8, r8, r8          ; lo_mask(rx_buffer[index]) <- 0
+                xor r8, r8, r8          ; reg{lo_mask(rx_buffer[index])} <- 0
                 addi r12, #1            ; break_flag <- 1
             concatenate_lo_rb:
                 ld r10, r1, r7              ; r10 <- usr_buffer[index]
@@ -658,11 +659,11 @@ read_buffer:
                 addi r12, #1
             
         store_data_rb:
-            st r8, r1, r7
-            addi r3, #1
-            addi r12, #0
-            jmpzd #for_loop_rb
-            add r11, r3, r0
+            st r8, r1, r7               ; buffer[index] <- r8
+            addi r3, #1                 ; r3++
+            addi r12, #0                ;    
+            jmpzd #for_loop_rb          ; if break_flag == 1, break
+            add r11, r3, r0             ; r11 <- r3, breaks for loop in next cycle
             
         jmpd #for_loop_rb
     
