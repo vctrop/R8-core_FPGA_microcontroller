@@ -171,6 +171,8 @@ RX_handler:
 ; Objective: reads data from RX, echoes it to TX and received string in kernel buffer 
 ; Argument:NULL
 ; Return: NULL
+; DEFINE KERNEL_BSIZE 80
+
     xor r0, r0, r0
     ldh r8, #80h       ; r8 <- &RX_data
     ldl r8, #30h
@@ -183,59 +185,76 @@ RX_handler:
         ld r7, r8, r0					; read ready signal
         addi r7, #0						; while(ready != 1) {}
         jmpzd #wait_for_ready_signal_rx	
-    st r5, r8, r0		                ; write to TX
+    st r5, r8, r0		                ; write RX DATA to TX DATA
+    
+    ldh r8, #rx_buffer_ready            ;
+    ldl r8, #rx_buffer_ready            ;                         
+    st r0, r8, r0                       ; rx_buffer_ready <- 0 (avoids reading a dirty buffer)
     
     ; store received data in rx buffer
     ldh r8, #rx_buffer
     ldl r8, #rx_buffer                  
-    ldh r7, #rx_buffer_index            ;
-    ldl r7, #rx_buffer_index            ;
+    ldh r7, #rx_buffer_index            
+    ldl r7, #rx_buffer_index            
     ld r6, r7, r0                       ; r6 <- rx_buffer_index
+    st r5, r8, r6                       ; rx_buffer[index] <- RX DATA
+    addi r6, #1                         ;
+    st r6, r7, r0                       ; rx_buffer_index++
     
-    ldh r12, #rx_buffer_byte
-    ldl r12, #rx_buffer_byte
-    ld r13, r12, r0
-    addi r13, #0
-    jmpzd #store_upper_byte_rx
-    ; store_lower_byte_rx:
-        ldh r11, #00h
-        ldl r11, #FFh
-        and r5, r5, r11                 ; r5 <- lower byte of RX DATA
-        ld r9, r8, r6                   ; r9 <- rx_buffer[index] (hi)
-        or r9, r9, r5                   ; 
-        st r9, r8, r6                   ; rx_buffer[index] <- rx_buffer[index](hi) OR TX_DATA(lo)
+    ; ldh r12, #rx_buffer_byte
+    ; ldl r12, #rx_buffer_byte
+    ; ld r13, r12, r0
+    ; addi r13, #0
+    ; jmpzd #store_upper_byte_rx
+    ; ; store_lower_byte_rx:
+        ; ldh r11, #00h
+        ; ldl r11, #FFh
+        ; and r5, r5, r11                 ; r5 <- lower byte of RX DATA
+        ; ld r9, r8, r6                   ; r9 <- rx_buffer[index] (hi)
+        ; or r9, r9, r5                   ; 
+        ; st r9, r8, r6                   ; rx_buffer[index] <- rx_buffer[index](hi) OR TX_DATA(lo)
         
-        addi r6, #1                     ;
-        st r6, r7, r0                   ; rx_buffer_index++
-        st r0, r12, r0                  ; rx_buffer_byte <- 0
-    jmpd #store_end_rx
-    store_upper_byte_rx:
-        sl0, r9, r5
-        sl0, r9, r9
-        sl0, r9, r9
-        sl0, r9, r9
-        sl0, r9, r9
-        sl0, r9, r9
-        sl0, r9, r9
-        sl0, r9, r9
-        st r9, r8, r6                   ; rx_buffer[index] <- RX DATA
-        addi r13, #1
-        st r13, r12, r0                 ; rx_buffer_byte <- 1
-    store_end_rx:
+        ; addi r6, #1                     ;
+        ; st r6, r7, r0                   ; rx_buffer_index++
+        ; st r0, r12, r0                  ; rx_buffer_byte <- 0
+    ; jmpd #store_end_rx
+    ; store_upper_byte_rx:
+        ; sl0, r9, r5
+        ; sl0, r9, r9
+        ; sl0, r9, r9
+        ; sl0, r9, r9
+        ; sl0, r9, r9
+        ; sl0, r9, r9
+        ; sl0, r9, r9
+        ; sl0, r9, r9
+        ; st r9, r8, r6                   ; rx_buffer[index] <- RX DATA
+        ; addi r13, #1
+        ; st r13, r12, r0                 ; rx_buffer_byte <- 1
+    ; store_end_rx:
     
     ; Check for <enter>
-    ldh r11, #0
-    ldl r11, #10
-    xor r11, r5, r11
-    jmpzd #finish_buffer_rx             ;
-    jmpd #handler_end_rx                ; If RX DATA is Line Feed, finish buffer and set flag
+    ldh r9, #0                          ;
+    ldl r9, #10                         ;
+    xor r9, r5, r9                      ; TX DATA == Line Feed?
+    jmpzd #finish_buffer_enter_rx       ; finish buffer in current position
+    ldh r9, #0                          ;
+    ldl r9, #13                         ;
+    xor r9, r5, r9                      ; TX DATA == Carriage Return?
+    jmpzd #finish_buffer_enter_rx       ; finish buffer in current position
+    ldh r9, #0                          ;
+    ldl r9, #79                         ;
+    xor r9, r6, r9                      ; index == KERNEL_BSIZE - 1?
+    jmpzd #finish_buffer_rx             ; finish buffer in next position
+    jmpd #handler_end_rx                ; If RX DATA is Line Feed or Carriage Return, or if max buffer size is reached finish buffer and set flag
+    finish_buffer_enter_rx:
+        subi r6, #1
     finish_buffer_rx:
-    st r0, r8, r6                       ; rx_buffer[index+1] <- 0
-    st r0, r7, r0                       ; index <- 0
-    ldh r8, #rx_buffer_ready
-    ldl r8, #rx_buffer_ready
-    addi r11, #1                         ;
-    st r11, r8, r0                       ; rx_buffer_ready <- 1
+        st r0, r8, r6                       ; rx_buffer[index|index+1] <- 0
+        st r0, r7, r0                       ; rx_buffer_index <- 0
+        ldh r8, #rx_buffer_ready
+        ldl r8, #rx_buffer_ready
+        addi r9, #1                         ;
+        st r9, r8, r0                       ; rx_buffer_ready <- 1
     
     handler_end_rx:
     rts
@@ -592,81 +611,36 @@ read_buffer:
 ; Return: r3 <- [num of buffered characters] on success, 0 on failure.
     xor r0, r0, r0
     xor r3, r3, r3
-    ldh r5, #rx_buffer_ready        ;
-    ldl r5, #rx_buffer_ready        ;
-    ld r6, r5, r0                   ;
-    addi r6, #0                     ;
-    jmpzd #return_rb                ; if rx_buffer_ready == 0, return 0
-    st r0, r5, r0                   ; rx_buffer_ready <- 0
+    ldh r5, #rx_buffer_ready            ;
+    ldl r5, #rx_buffer_ready            ;
+    ld r6, r5, r0                       ;
+    addi r6, #0                         ;
+    jmpzd #return_rb                    ; if rx_buffer_ready == 0, return 0
+    st r0, r5, r0                       ; rx_buffer_ready <- 0
     
-    add r11, r2, r0                 ; r11 <- size
-    ; r3 (return value) will be used as cont, being incremented in the end independently of <enter> detection
-    for_loop_rb:                        ; for(cont = 0, cont < size, cont ++)    
-        xor r12, r12, r12               ; break flag <- 0
-        xor r5, r3, r11                 ; 
-        jmpzd #return_rb                ; if cont == r11, break
-        ldh r5, #0
-        ldl r5, #2
-        div r3, r5
-        mfl r6                          ; r6 <- cont%2 (byte)
-        mfh r7                          ; r7 <- cont/2 (index)
-        ldh r8, #rx_buffer              ;
-        ldl r8, #rx_buffer              ;
-        ld r8, r8, r7                   ; r8 <- rx_buffer[index]
-        addi r6, #0
-        jmpzd #mask_hi_rb
-        ; mask_lo_rb:
-            ldh r9, #00h
-            ldl r9, #FFh
-            and r8, r8, r9              ; r8 <- lo_mask(rx_buffer[index])
-            
-            ldh r9, #00h                ;
-            ldl r9, #0Ah                ;    
-            xor r9, r8, r9              ;    
-            jmpzd #enter_detected_lo_rb ;
-            ldh r9, #00h                ;
-            ldl r9, #0Dh                ;
-            xor r9, r8, r9              ;
-            jmpzd #enter_detected_lo_rb ; if lo_mask(rx_buffer[index]) == 000Ah or lo_mask(rx_buffer[index]) == 000Dh
-            jmpd #concatenate_lo_rb
-            enter_detected_lo_rb:
-                xor r8, r8, r8          ; reg{lo_mask(rx_buffer[index])} <- 0
-                addi r12, #1            ; break_flag <- 1
-            concatenate_lo_rb:
-                ld r10, r1, r7              ; r10 <- usr_buffer[index]
-                ldh r9, #FFh
-                ldl r9, #00h
-                and r10, r10, r9            ;    
-                or r8, r10, r8              ; r8 <- hi_mask(usr_buffer[index]) OR lo_mask(rx_buffer[index])
-                jmpd #store_data_rb
-            
-        mask_hi_rb:
-            ldh r9, #FFh
-            ldl r9, #00h
-            and r8, r8, r9              ; r8 <- hi_mask(rx_buffer[index])
-            
-            ldh r9, #0Ah                ;
-            ldl r9, #00h                ;    
-            xor r9, r8, r9              ;    
-            jmpzd #enter_detected_hi_rb ;
-            ldh r9, #0Dh                ;
-            ldl r9, #00h                ;
-            xor r9, r8, r9              ;
-            jmpzd #enter_detected_hi_rb ; if lo_mask(rx_buffer[index]) == 000Ah or lo_mask(rx_buffer[index]) == 000Dh
-            jmpd #store_data_rb
-            enter_detected_hi_rb:
-                xor r8, r8, r8
-                addi r12, #1
-            
+    add r10, r10, r10                   ; break_flag <- 0
+    ; r3 (return value) will be used as index, being incremented in the end independently of <enter> detection
+    for_loop_rb:                        ; for(index = 0, index < size, index ++)    
+        xor r5, r3, r2                  ; 
+        jmpzd #return_rb                ; if index == size, break
+        addi r10, #0                    ; 
+        jmpzd #keep_loop_rb             ;    
+        jmpd #return_rb                 ; if break_flag == 1, break
+        keep_loop_rb:
+            ldh r8, #rx_buffer          ;
+            ldl r8, #rx_buffer          ;
+            ld r8, r8, r3               ; r8 <- rx_buffer[index]
+            addi r8, #0
+            jmpzd #string_end_rb        ; if rx_buffer[index] == 0, finish
+
+        string_end_rb:
+            addi r10, #1                ; break_flag <- 1
+        
         store_data_rb:
-            st r8, r1, r7               ; buffer[index] <- r8
-            addi r3, #1                 ; r3++
-            addi r12, #0                ;    
-            jmpzd #for_loop_rb          ; if break_flag == 1, break
-            add r11, r3, r0             ; r11 <- r3, breaks for loop in next cycle
+        st r8, r1, r3                   ; buffer[index] <- r8
+        addi r3, #1                     ; r3++
             
         jmpd #for_loop_rb
-    
     return_rb:
     
     rts
@@ -839,10 +813,10 @@ main:
 	tsr_handlers:		    db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 	swi_handlers: 		    db #0, #0, #0, #0, #0
         ; input buffer
-    rx_buffer:              db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0,
+    rx_buffer:              db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
     rx_buffer_ready:        db #0
     rx_buffer_index:        db #0
-    rx_buffer_byte:         db #0    
+    ; rx_buffer_byte:         db #0    
         ; error message strings
 	inv_instruction_msg:    db #49h, #6eh, #76h, #61h, #6ch, #69h, #64h, #20h, #69h, #6eh, #73h, #74h, #72h, #75h, #63h, #74h, #69h, #6fh, #6eh, #20h, #66h, #6fh, #75h, #6eh, #64h, #20h, #6fh, #6eh, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
     ov_msg:				    db #4fh, #76h, #65h, #72h, #66h, #6ch, #6fh, #77h, #20h, #6fh, #63h, #63h, #75h, #72h, #65h, #64h, #20h, #61h, #74h, #20h, #61h, #64h, #64h, #72h, #65h, #73h, #73h, #20h, #32, #0     
@@ -853,7 +827,7 @@ main:
 	space:				    db #20h, #0
 	
     ; USER MEMORY SPACE
-    user_buffer:            db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
+    user_buffer:            db  #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0,
     string:                 db #0, #0, #0, #0, #0, #0, #0
     vector:     		    db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 
 .enddata
