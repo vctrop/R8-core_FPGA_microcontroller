@@ -69,15 +69,15 @@ boot:
     ldh r8, #swi_handlers
     ldl r8, #swi_handlers
     ldh r9, #string_to_integer
-    ldl r9, #string_to_integer
-    st r9, r8, r0
+    ldl r9, #string_to_integer	
+    st r9, r8, r0					; swi[3] = string_to_integer
     
     addi r0, #1
     ldh r8, #swi_handlers
     ldl r8, #swi_handlers
     ldh r9, #read_buffer
     ldl r9, #read_buffer
-    st r9, r8, r0
+    st r9, r8, r0					; swi[4] = read_buffer
 	
     ;interruption handlers for increment and decrement buttons
     xor r0, r0, r0
@@ -113,7 +113,9 @@ boot:
 	st r9, r8, r0
     
     jmpd #main
-    
+   
+;--------------------- KERNEL INTERRUPTION AND TRAP HANDLERS --------------------------------
+
 ISR:
     push r0
     push r1
@@ -168,7 +170,7 @@ ISR:
 ;end interruption_handler
 
 RX_handler:
-; Objective: reads data from RX, echoes it to TX and received string in kernel buffer 
+; Objective: reads data from RX, echoes it to TX and stores received ASCII character in kernel buffer 
 ; Argument:NULL
 ; Return: NULL
 ; DEFINE KERNEL_BSIZE 80
@@ -233,12 +235,13 @@ TSR:
 ; ATTENTION!! R15 IS NOT PRESERVED BETWEEN TRAP CALLS AND IS CONSIDERED KERNEL REGISTERS
 ; IT CAN BE USED FOR OTHERWISE TEMPORARY REGISTERS WHEN YOU CAN BE ASSURED THAT NO TRAP CAN OCCUR BETWEEN INSTRUCTIONS
 ; R14 is always the swi call number, indexing which software interrupt call you want to make 
+; r3 is never modified by trap handlers, but can be used as return register for swi
 	pop r15
 	push r15 		; r15 <- trap instruction address  ; r14 is swi argument
     push r0
     push r1
     push r2
-    push r3
+    ;push r3
     push r4
     push r5
     push r6
@@ -270,7 +273,7 @@ TSR:
     pop r6
     pop r5
     pop r4 
-    pop r3 
+    ;pop r3 
     pop r2
     pop r1
     pop r0
@@ -374,6 +377,7 @@ print_string:
 ; Objective: sends a NULL TERMINATED STRING to serial port
 ; Argument: r1 <- &string
 ; Return: NULL
+;SYCALL NUMBER: 0
 	xor r0, r0, r0 
 	xor r6, r6, r6 		                    ; string index
 	ldh r9, #80h
@@ -398,6 +402,7 @@ integer_to_string:
 ; Objective: converts an 16 bit signed integer to ascii, storing the result in &string 
 ; Argument: r1 <- n, r2 <- &string
 ; Return: r3 <- &string TODO: (on success, 0 on failure)
+;SYCALL NUMBER: 1
 	push r10
 	push r11
 	push r12 
@@ -468,6 +473,7 @@ integer_to_hexstring:
 ; Objective: converts an 16 bit integer to a hexadecimal ascii string, storing the result in &string 
 ; Argument: r1 <- n, r2 <- &string
 ; Return: &string on success, 0 on failure.
+;SYCALL NUMBER: 2
 	push r10
 	push r11
 	push r12 
@@ -527,6 +533,7 @@ string_to_integer:
 ; Objective: converts string to unsigned integer value
 ; Argument: r1 <- &string
 ; Return: -1 on failure, converted value on sucess
+;SYCALL NUMBER: 3
 	;find the size of the string, so that we read it from back to front
 	push r10
 	push r11
@@ -578,6 +585,7 @@ read_buffer:
 ; Objective: tries to read from RX data buffer, returns 0 if ENTER was not pressed yet, else copies n bytes to indicated address
 ; Argument: r1 <- &buffer, r2 <- size
 ; Return: r3 <- [num of buffered characters] on success, 0 on failure.
+;SYCALL NUMBER: 4
     xor r0, r0, r0
     xor r3, r3, r3
     ldh r5, #rx_buffer_ready            ;
@@ -601,7 +609,8 @@ read_buffer:
             ld r8, r8, r3               ; r8 <- rx_buffer[index]
             addi r8, #0
             jmpzd #string_end_rb        ; if rx_buffer[index] == 0, finish
-
+			jmpd #store_data_rb			; else, just store data
+			
         string_end_rb:
             addi r10, #1                ; break_flag <- 1
         
@@ -615,7 +624,13 @@ read_buffer:
     rts
 ;end read_buffer
 
-; THIS IS NOT A SYSCALL BUT INSTEAD A HELPER FUNCTION
+;--------------- END KERNEL FUNCTIONS AND DRIVERS ---------------------------
+
+;--------------- KERNEL LIBRARY FUNCTIONS -------------------------------------
+; This functions are used by kernel systemcalls and interruption handlers, but can be
+; used by the user program freely aswell. They follow the same calling conventions as
+; regular functions.
+
 strlen:
 ; Objective: counts number of characters in NULL TERMINATED string vector, excluding the terminator byte
 ; Argument: r1 <- &string
@@ -630,8 +645,10 @@ strlen:
 	return_sl:
 		rts
 ;end strlen
-;--------------- END KERNEL FUNCTIONS AND DRIVERS ---------------------------
 
+;--------------- END KERNEL LIBRARY FUNCTIONS -------------------------------------
+
+;--------------------USER PROGRAM SUBROUTINES--------------------------------------
 print_array:
 ; Objective: runs through array, converting each number to ascii and printing the result
 ; Argument: r1 <- &array, r2 <- size
@@ -767,6 +784,7 @@ get_string:
         jmpzd #read_loop_gs
     rts
 ;end get_string
+;--------------------END USER PROGRAM SUBROUTINES--------------------------------------
 
 
 main:
@@ -777,12 +795,13 @@ main:
     ; ldl r1, #str0
     ; swi
 	
-    ; ldh r1, #user_buffer
-    ; ldl r1, #user_buffer
-    ; ldh r2, #0
-    ; ldl r2, #100       
-    ; jsrd #get_string
-    
+    ldh r1, #user_buffer
+    ldl r1, #user_buffer
+    ldh r2, #0
+    ldl r2, #100       
+    jsrd #get_string
+    halt 		; DELETE THIS LATER 
+	
     ; ;start a new line
     ; ldh r14, #0
     ; ldl r14, #0        ;print string
@@ -822,15 +841,16 @@ main:
     ; ldl r1, #new_line
     ; swi
     
-	 main_sort:
-     xor r0, r0, r0
-      ldh r14, #0
-     ldl r14, #4               
-     ldh r1, #user_buffer
-     ldl r1, #user_buffer
-     ldh r2, #0
-     ldl r2, #8                 ; size 8
-     swi                        ; read(&user_buffer, 8)
+	; main_sort:
+	;this BLOCK IS TEST CODE DELETE IT LATER
+	; xor r0, r0, r0
+	; ldh r14, #0
+	; ldl r14, #4               
+	; ldh r1, #user_buffer
+	; ldl r1, #user_buffer
+	; ldh r2, #0
+	; ldl r2, #8                 ; size 8
+	; swi                        ; read(&user_buffer, 8)
      
      
 	; ;read size of vector
@@ -924,7 +944,7 @@ main:
     ; add r2, r10, r0     ; r2 <- size
     ; jsrd #print_array
     
-	jmpd #main_sort  
+	;jmpd #main_sort  
 .endcode
 
 
@@ -935,7 +955,7 @@ main:
         ; interrupt vector arrays
 	irq_handlers: 	        db #0, #0, #0, #0, #0, #0, #0, #0
 	tsr_handlers:		    db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
-	swi_handlers: 		    db #0, #0, #0, #0, #0
+	swi_handlers: 		    db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
         ; input buffer
     rx_buffer:              db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
     rx_buffer_ready:        db #0
@@ -960,6 +980,8 @@ main:
     str2:                   db #45h, #6eh, #74h, #65h, #72h, #20h, #6fh, #72h, #64h, #65h, #72h, #20h, #28h, #30h, #20h, #66h, #6fh, #72h, #20h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #2ch, #20h, #31h, #20h, #66h, #6fh, #72h, #20h, #64h, #65h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #29h, #3ah, #13, #10, #0
     ;"Enter element:\n\r"
     str3:                   db #45h, #6eh, #74h, #65h, #72h, #20h, #65h, #6ch, #65h, #6dh, #65h, #6eh, #74h, #3ah, #13, #10, #0
-    string:                 db #0, #0, #0, #0, #0, #0, #0
+    ;string size: 8 words
+	string:                 db #0, #0, #0, #0, #0, #0, #0, #0
+	;vector size: 50 words
     vector:     		    db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 
 .enddata

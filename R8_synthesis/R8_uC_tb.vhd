@@ -98,7 +98,7 @@ begin
                 when Sidle =>
                     TX_av <= '0';
 					
-					if unsigned(ram_index) >= 10 then			-- mudar isso pra dizer o numero de linhas a se transferir
+					if unsigned(ram_index) >= 2 then			-- mudar isso pra dizer o numero de linhas a se transferir
 						state <= Sidle;
 					elsif TX_ready = '1' and sendLo = '0' then
                         state <= SsendHi;
