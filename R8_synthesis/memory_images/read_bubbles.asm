@@ -786,20 +786,165 @@ end_bs:
 ;end bublesort
 
 
+get_string:
+; Objective: Wrapper for read_buffer, busy waits until buffer is available
+; Argument: r1 <- &string, r2 <- size
+; Return: r3 <- [number of characters read]   
+    ldh r14, #0 
+    ldl r14, #4     ; read buffer    
+    read_loop_gs:
+        swi         ; call read read_buffer(string, size)
+        addi r3, #0
+        jmpzd #read_gs
+    rts
+;end get_string
+
 
 main:
-	; read string
+    ; read string
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #str0
+    ldl r1, #str0
+    swi
 	
+    ldh r1, #user_buffer
+    ldl r1, #user_buffer
+    ldh r2, #0
+    ldl r2, #100       
+    jsrd #get_string
+    
+    ;start a new line
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #new_line
+    ldl r1, #new_line
+    swi
+    
+    ;reverse buffer order
+    ldh r9, #user_buffer
+    ldl r9, #user_buffer
+    xor r0, r0, r0
+    subi r3, #1             ; r3 points to end of string on buffer  TODO: ISSO PODE ESTAR ERRADO
+    reverse_buffer_loop:
+        ld r5, r9, r0      ; get begging words
+        ld r6, r9, r3      ; get last words
+        st r5, r9, r3
+        st r6, r9, r0      ; swap elements
+        addi r0, #1
+        subi r3, #1
+        sub r7, r3, r0      ; if(r3 <= r0)
+        jmpnd #print_reversed
+        jmpzd #print_reversed
+        jmpd #reverse_buffer_loop
+    
 	; print in inverse order
-	
+    print_reversed:
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #user_buffer
+    ldl r1, #user_buffer
+    swi
+    
+    ;start a new line
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #new_line
+    ldl r1, #new_line
+    swi
+    
 	main_sort:
 	;read size of vector
+    main_get_size:
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #str1
+    ldl r1, #str1
+    swi
+    
+    ldh r1, #user_buffer
+    ldl r1, #user_buffer
+    ldh r2, #0
+    ldl r2, #100    
+    jsrd #get_string
+    
+    ldh r14, #0
+    ldl r14, #3     ; string_to_integer
+    ldh r1, #user_buffer
+    ldl r1, #user_buffer
+    addi r3, #0         ; if(r3 < 0) input was not integer
+    jmpnd #main_get_size
+    xor r0, r0, r0
+    add r10, r3, r0     ; r10 <- vector_size
+    
 	;read order
-	
+    main_get_order:
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #str2
+    ldl r1, #str2
+    swi
+    
+    ldh r1, #user_buffer
+    ldl r1, #user_buffer
+    ldh r2, #0
+    ldl r2, #100    
+    jsrd #get_string
+    
+    ldh r14, #0
+    ldl r14, #3     ; string_to_integer
+    ldh r1, #user_buffer
+    ldl r1, #user_buffer
+    addi r3, #0         ; if(r3 < 0) input was not integer
+    jmpnd #main_get_order
+    xor r0, r0, r0
+    add r11, r3, r0     ; r11 <- order
+    
 	;read vector elements
-	
+	xor r5, r5, r5      ; r5 is index
+    ldh r9, #vector
+    ldl r9, #vector
+    read_vector_elements_loop:
+        ldh r14, #0
+        ldl r14, #0        ;print string
+        ldh r1, #str2
+        ldl r1, #str2
+        swi
+        
+        ldh r1, #user_buffer
+        ldl r1, #user_buffer
+        ldh r2, #0
+        ldl r2, #100    
+        jsrd #get_string
+        
+        ldh r14, #0
+        ldl r14, #3     ; string_to_integer
+        ldh r1, #user_buffer
+        ldl r1, #user_buffer
+        addi r3, #0         ; if(r3 < 0) input was not integer
+        jmpnd #main_get_order
+        ;store the element
+        st r3, r9, r5       ; store vector
+        addi r5, #1         ; index++
+        sub r7, r10, r5     ; while(index <= vector_size)
+        jmpnd #sort_vector
+        jmpzd #sort_vector
+        jmpd #read_vector_elements_loop
+        
 	;sort vector
-	
+	sort_vector:
+    xor r0, r0, r0
+    add r2, r10, r0     ; r2 <- size
+    add r1, r11, r0     ; r1 <- order
+    jsrd #bublesort
+    
+    ;print_array
+    ldh r1, #vector
+    ldl r1, #vector
+    xor r0, r0, r0
+    add r2, r10, r0     ; r2 <- size
+    jsrd #print_array
+    
 	jmpd #main_sort  
 .endcode
 
@@ -827,7 +972,15 @@ main:
 	space:				    db #20h, #0
 	
     ; USER MEMORY SPACE
-    user_buffer:            db  #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0,
+    ;"Type a message:\n\r"
+    str0:                   db #54h, #79h, #70h, #65h, #20h, #61h, #20h, #6dh, #65h, #73h, #73h, #61h, #67h, #65h, #3a, #13, #10, #0
+    ;"Type vector size:\n\r"
+    str1:                   db #54h, #79h, #70h, #65h, #20h, #76h, #65h, #63h, #74h, #6fh, #72h, #20h, #73h, #69h, #7ah, #65h, #3a, #13, #10, #0
+    ;"Enter order (0 for crescent, 1 for decrescent):r\n"
+    str2:                   db #45h, #6eh, #74h, #65h, #72h, #20h, #6fh, #72h, #64h, #65h, #72h, #20h, #28h, #30h, #20h, #66h, #6fh, #72h, #20h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #2ch, #20h, #31h, #20h, #66h, #6fh, #72h, #20h, #64h, #65h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #29h, #3a, #13, #10, #0
+    ;"Enter element:\n\r"
+    str3:                   db #45h, #6eh, #74h, #65h, #72h, #20h, #65h, #6ch, #65h, #6dh, #65h, #6eh, #74h, #3a, #13, #10, #0
     string:                 db #0, #0, #0, #0, #0, #0, #0
     vector:     		    db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 
+    user_buffer:            db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
 .enddata
