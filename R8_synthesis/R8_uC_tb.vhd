@@ -22,6 +22,7 @@ architecture testbench of R8_uC_tb is
 	signal ram_index : std_logic_vector(14 downto 0);
 	signal TX_av, TX_ready, sendLo : std_logic;
     signal transfer : std_logic := '0';
+    signal restart_transfer, rst_transfer : std_logic;
     type BIN_TRANSFER_STATES is (Srst, Sidle, SsendHi, SsendLo);
     signal state : BIN_TRANSFER_STATES := Srst;
     
@@ -75,10 +76,10 @@ begin
           clk_div4    => clk_div4
          );
          
-    BIN_TRANSFER_SIMULATOR: process (clk_div4, rst, mode, transfer)
+    BIN_TRANSFER_SIMULATOR: process (clk_div4, rst_transfer, mode, transfer)
     begin
         -- if rst = '1' or mode = '0' then      -- USAGE: DATA TRANSFER ON PROGRAMMING MODE
-        if rst = '1' then                       -- USAGE: DATA TRANSFER ON EXECUTION MODE
+        if rst_transfer = '1' then                       -- USAGE: DATA TRANSFER ON EXECUTION MODE
             state <= Srst;
             
         elsif rising_edge(clk_div4) and transfer = '1' then
@@ -98,7 +99,7 @@ begin
                 when Sidle =>
                     TX_av <= '0';
 					
-					if unsigned(ram_index) >= 2 then			-- mudar isso pra dizer o numero de linhas a se transferir
+					if unsigned(ram_index) >= 1 then			-- mudar isso pra dizer o numero de linhas a se transferir
 						state <= Sidle;
 					elsif TX_ready = '1' and sendLo = '0' then
                         state <= SsendHi;
@@ -133,10 +134,12 @@ begin
         end if;
     end process;
         
+    rst_transfer <= rst or restart_transfer;
+    restart_transfer <= '0', '1' after 1000 us, '0' after 1005 us;
 	data_TX(15 downto 8) <= (others=>'0');
     data_TX(7 downto 0) <= ram_out(7 downto 0) when sendLo = '1' else ram_out(15 downto 8) ;
     ce_mem <= '1' when state = SsendHi or state = SsendLo else '0';
-     
+    
     clk_div4_n <= not clk_div4;
     
 	transfer <= '0', '1' after 40 us;

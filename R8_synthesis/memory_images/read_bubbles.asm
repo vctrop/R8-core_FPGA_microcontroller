@@ -255,7 +255,7 @@ TSR:
 	push r14
     pushf
 	
-    mfc	r5		; reads trap cause
+    mfc	r5		        ; reads trap cause
 	ldh r8, #tsr_handlers
 	ldl r8, #tsr_handlers
     ld r8, r8, r5		; r8 <- handler address
@@ -365,6 +365,7 @@ tsr_swi:
 ; 3 - string_to_integer
 ; 4 - read_buffer
 
+;TODO CHECK THE SYSCALL NUMBER !!
 	ldh r5, #swi_handlers
 	ldl r5, #swi_handlers
 	ld r5, r14, r5
@@ -504,7 +505,7 @@ integer_to_hexstring:
 	add r6, r1, r0			; r6 <- n
 
 	loop_hs:
-		and r8, r6, r7  ; clean upper bits
+		and r8, r6, r7  ; clean upper byte
 		add r9, r8, r0 	; r9 <- r8 (r9 is temp register for comparison)
 		subi r9, #10
 		jmpnd #decimal_character_loop_hs	; if(r8 < 10) 
@@ -532,11 +533,12 @@ integer_to_hexstring:
 string_to_integer:
 ; Objective: converts string to unsigned integer value
 ; Argument: r1 <- &string
-; Return: -1 on failure, converted value on sucess
+; Return: -1 on failure, converted value on success
 ;SYCALL NUMBER: 3
 	;find the size of the string, so that we read it from back to front
 	push r10
 	push r11
+    
 	jsrd #strlen
 	addi r3, #0
 	jmpzd #failure_si	;string size must be bigger than 0
@@ -566,7 +568,7 @@ string_to_integer:
 		jmpvd #failure_si	; overflow should never occur here
 		mul r10, r11
 		mfl r10
-		subi r5, #1			; check for the beggining of the string
+		subi r5, #1			; check for the beginning of the string
 		jmpnd #return_si
 		jmpd #loop_si
 		
@@ -586,6 +588,7 @@ read_buffer:
 ; Argument: r1 <- &buffer, r2 <- size
 ; Return: r3 <- [num of buffered characters] on success, 0 on failure.
 ;SYCALL NUMBER: 4
+    push r10
     xor r0, r0, r0
     xor r3, r3, r3
     ldh r5, #rx_buffer_ready            ;
@@ -595,7 +598,7 @@ read_buffer:
     jmpzd #return_rb                    ; if rx_buffer_ready == 0, return 0
     st r0, r5, r0                       ; rx_buffer_ready <- 0
     
-    add r10, r10, r10                   ; break_flag <- 0
+    xor r10, r10, r10                   ; break_flag <- 0
     ; r3 (return value) will be used as index, being incremented in the end independently of <enter> detection
     for_loop_rb:                        ; for(index = 0, index < size, index ++)    
         xor r5, r3, r2                  ; 
@@ -620,7 +623,7 @@ read_buffer:
             
         jmpd #for_loop_rb
     return_rb:
-    
+    pop r10
     rts
 ;end read_buffer
 
@@ -719,7 +722,6 @@ BubbleSort:
 	add r10, r1, r0			; r10 <- order
 	ldh r1, #vector
 	ldl r1, #vector
-    ld r2, r2, r0           ; r2 <- size
     add r3, r2, r1          ; r3 points the end of array (right after the last element)
     
     ldl r4, #0              ;
@@ -733,7 +735,7 @@ scan_bs:
     
     xor r4, r4, r4          ; r4 <- 0 before each pass
     
-    add r5, r1, r0          ; r5 points the first arrar element
+    add r5, r1, r0          ; r5 points the first array element
     
     add r6, r1, r0          ;
     addi r6, #1             ; r6 points the second array element
@@ -769,7 +771,7 @@ swap_bs:
 end_bs:
 	pop r10
 	rts
-;end bublesort
+;end BubbleSort
 
 
 get_string:
@@ -788,163 +790,176 @@ get_string:
 
 
 main:
-    ; ; read string
-    ; ldh r14, #0
-    ; ldl r14, #0        ;print string
-    ; ldh r1, #str0
-    ; ldl r1, #str0
-    ; swi
+    ; read string
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #str0
+    ldl r1, #str0
+    swi
 	
     ldh r1, #user_buffer
     ldl r1, #user_buffer
     ldh r2, #0
-    ldl r2, #100       
+    ldl r2, #50    
     jsrd #get_string
-    halt 		; DELETE THIS LATER 
-	
-    ; ;start a new line
-    ; ldh r14, #0
-    ; ldl r14, #0        ;print string
-    ; ldh r1, #new_line
-    ; ldl r1, #new_line
-    ; swi
     
-    ; ;reverse buffer order
-    ; ldh r9, #user_buffer
-    ; ldl r9, #user_buffer
-    ; xor r0, r0, r0
-    ; subi r3, #1             ; r3 points to end of string on buffer  TODO: ISSO PODE ESTAR ERRADO
-    ; reverse_buffer_loop:
-        ; ld r5, r9, r0      ; get begging words
-        ; ld r6, r9, r3      ; get last words
-        ; st r5, r9, r3
-        ; st r6, r9, r0      ; swap elements
-        ; addi r0, #1
-        ; subi r3, #1
-        ; sub r7, r3, r0      ; if(r3 <= r0)
-        ; jmpnd #print_reversed
-        ; jmpzd #print_reversed
-        ; jmpd #reverse_buffer_loop
+    ;start a new line
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #new_line
+    ldl r1, #new_line
+    swi
     
-	; ; print in inverse order
-    ; print_reversed:
-    ; ldh r14, #0
-    ; ldl r14, #0        ;print string
-    ; ldh r1, #user_buffer
-    ; ldl r1, #user_buffer
-    ; swi
+    ;reverse buffer order
+    ldh r9, #user_buffer
+    ldl r9, #user_buffer
+    xor r0, r0, r0
+    subi r3, #2             ; r3 points to end of string on buffer  TODO: ISSO PODE ESTAR ERRADO
+    reverse_buffer_loop:
+        ld r5, r9, r0      ; get begging words
+        ld r6, r9, r3      ; get last words
+        st r5, r9, r3
+        st r6, r9, r0      ; swap elements
+        addi r0, #1
+        subi r3, #1
+        sub r7, r3, r0      ; if(r3 <= r0)
+        jmpnd #print_reversed
+        jmpzd #print_reversed
+        jmpd #reverse_buffer_loop
     
-    ; ;start a new line
-    ; ldh r14, #0
-    ; ldl r14, #0        ;print string
-    ; ldh r1, #new_line
-    ; ldl r1, #new_line
-    ; swi
+	; print in inverse order
+    print_reversed:
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #user_buffer
+    ldl r1, #user_buffer
+    swi
     
-	; main_sort:
-	;this BLOCK IS TEST CODE DELETE IT LATER
-	; xor r0, r0, r0
-	; ldh r14, #0
-	; ldl r14, #4               
-	; ldh r1, #user_buffer
-	; ldl r1, #user_buffer
-	; ldh r2, #0
-	; ldl r2, #8                 ; size 8
-	; swi                        ; read(&user_buffer, 8)
-     
-     
-	; ;read size of vector
-    ; main_get_size:
-    ; ldh r14, #0
-    ; ldl r14, #0        ;print string
-    ; ldh r1, #str1
-    ; ldl r1, #str1
-    ; swi
+    ;start a new line
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #new_line
+    ldl r1, #new_line
+    swi
     
-    ; ldh r1, #user_buffer
-    ; ldl r1, #user_buffer
-    ; ldh r2, #0
-    ; ldl r2, #100    
-    ; jsrd #get_string
     
-    ; ldh r14, #0
-    ; ldl r14, #3     ; string_to_integer
-    ; ldh r1, #user_buffer
-    ; ldl r1, #user_buffer
-    ; addi r3, #0         ; if(r3 < 0) input was not integer
-    ; jmpnd #main_get_size
-    ; xor r0, r0, r0
-    ; add r10, r3, r0     ; r10 <- vector_size
+	main_sort:
+	;read size of vector
+    main_get_size:
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #str1
+    ldl r1, #str1
+    swi
     
-	; ;read order
-    ; main_get_order:
-    ; ldh r14, #0
-    ; ldl r14, #0        ;print string
-    ; ldh r1, #str2
-    ; ldl r1, #str2
-    ; swi
+    ldh r1, #user_buffer
+    ldl r1, #user_buffer
+    ldh r2, #0
+    ldl r2, #50    
+    jsrd #get_string
     
-    ; ldh r1, #user_buffer
-    ; ldl r1, #user_buffer
-    ; ldh r2, #0
-    ; ldl r2, #100    
-    ; jsrd #get_string
+    ldh r14, #0
+    ldl r14, #3     ; string_to_integer
+    ldh r1, #user_buffer
+    ldl r1, #user_buffer
+    swi
+    addi r3, #0         ; if(r3 <= 0) input was not integer (or zero, which is also invalid)
+    jmpnd #main_get_size
+    jmpzd #main_get_size
+    ldh r7, #0
+    ldl r7, #50         ; max vector size constant
+    sub r5, r7, r3      ; if (r3 > 50) input was invalid
+    jmpnd #main_get_size
+    xor r0, r0, r0
+    add r10, r3, r0     ; r10 <- vector_size
     
-    ; ldh r14, #0
-    ; ldl r14, #3     ; string_to_integer
-    ; ldh r1, #user_buffer
-    ; ldl r1, #user_buffer
-    ; addi r3, #0         ; if(r3 < 0) input was not integer
-    ; jmpnd #main_get_order
-    ; xor r0, r0, r0
-    ; add r11, r3, r0     ; r11 <- order
     
-	; ;read vector elements
-	; xor r5, r5, r5      ; r5 is index
-    ; ldh r9, #vector
-    ; ldl r9, #vector
-    ; read_vector_elements_loop:
-        ; ldh r14, #0
-        ; ldl r14, #0        ;print string
-        ; ldh r1, #str2
-        ; ldl r1, #str2
-        ; swi
+    ;start a new line
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #new_line
+    ldl r1, #new_line
+    swi
+    
+	; read order
+    main_get_order:
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #str2
+    ldl r1, #str2
+    swi
+    
+    ldh r1, #user_buffer
+    ldl r1, #user_buffer
+    ldh r2, #0
+    ldl r2, #50    
+    jsrd #get_string
+    
+    ldh r14, #0
+    ldl r14, #3     ; string_to_integer
+    ldh r1, #user_buffer
+    ldl r1, #user_buffer
+    swi
+    addi r3, #0         ; if(r3 < 0) input was not integer
+    jmpnd #main_get_order
+    xor r0, r0, r0
+    add r11, r3, r0     ; r11 <- order
+    
+    
+	;read vector elements
+	xor r5, r5, r5      ; r5 is index
+    ldh r9, #vector
+    ldl r9, #vector
+    read_vector_elements_loop:
+        ldh r14, #0
+        ldl r14, #0        ;print string
+        ldh r1, #str3
+        ldl r1, #str3
+        swi
         
-        ; ldh r1, #user_buffer
-        ; ldl r1, #user_buffer
-        ; ldh r2, #0
-        ; ldl r2, #100    
-        ; jsrd #get_string
+        ldh r1, #user_buffer
+        ldl r1, #user_buffer
+        ldh r2, #0
+        ldl r2, #50    
+        jsrd #get_string
         
-        ; ldh r14, #0
-        ; ldl r14, #3     ; string_to_integer
-        ; ldh r1, #user_buffer
-        ; ldl r1, #user_buffer
-        ; addi r3, #0         ; if(r3 < 0) input was not integer
-        ; jmpnd #main_get_order
-        ; ;store the element
-        ; st r3, r9, r5       ; store vector
-        ; addi r5, #1         ; index++
-        ; sub r7, r10, r5     ; while(index <= vector_size)
-        ; jmpnd #sort_vector
-        ; jmpzd #sort_vector
-        ; jmpd #read_vector_elements_loop
+        ldh r14, #0
+        ldl r14, #3     ; string_to_integer
+        ldh r1, #user_buffer
+        ldl r1, #user_buffer
+        swi
+        addi r3, #0         ; if(r3 < 0) input was not integer
+        jmpnd #read_vector_elements_loop
+        ;store the element
+        st r3, r9, r5       ; store vector
+        addi r5, #1         ; index++
+        sub r7, r10, r5     ; while(index <= vector_size)
+        jmpnd #main_sort_vector
+        jmpzd #main_sort_vector
+        jmpd #read_vector_elements_loop
         
-	; ;sort vector
-	; sort_vector:
-    ; xor r0, r0, r0
-    ; add r2, r10, r0     ; r2 <- size
-    ; add r1, r11, r0     ; r1 <- order
-    ; jsrd #bublesort
+	;sort vector
+	main_sort_vector:
+    xor r0, r0, r0
+    add r2, r10, r0     ; r2 <- size
+    add r1, r11, r0     ; r1 <- order
+    jsrd #BubbleSort
     
-    ; ;print_array
-    ; ldh r1, #vector
-    ; ldl r1, #vector
-    ; xor r0, r0, r0
-    ; add r2, r10, r0     ; r2 <- size
-    ; jsrd #print_array
+    ;start a new line
+    ldh r14, #0
+    ldl r14, #0        ;print string
+    ldh r1, #new_line
+    ldl r1, #new_line
+    swi
     
-	;jmpd #main_sort  
+    ;print_array
+    ldh r1, #vector
+    ldl r1, #vector
+    xor r0, r0, r0
+    add r2, r10, r0     ; r2 <- size
+    jsrd #print_array
+    
+	jmpd #main_sort  
 .endcode
 
 
@@ -974,12 +989,12 @@ main:
     user_buffer:            db #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0, #0
     ;"Type a message:\n\r"
     str0:                   db #54h, #79h, #70h, #65h, #20h, #61h, #20h, #6dh, #65h, #73h, #73h, #61h, #67h, #65h, #3ah, #13, #10, #0
-    ;"Type vector size:\n\r"
-    str1:                   db #54h, #79h, #70h, #65h, #20h, #76h, #65h, #63h, #74h, #6fh, #72h, #20h, #73h, #69h, #7ah, #65h, #3ah, #13, #10, #0
+    ;"\n\rType vector size:\n\r"
+    str1:                   db #13, #10, #54h, #79h, #70h, #65h, #20h, #76h, #65h, #63h, #74h, #6fh, #72h, #20h, #73h, #69h, #7ah, #65h, #3ah, #13, #10, #0
     ;"Enter order (0 for crescent, 1 for decrescent):r\n"
     str2:                   db #45h, #6eh, #74h, #65h, #72h, #20h, #6fh, #72h, #64h, #65h, #72h, #20h, #28h, #30h, #20h, #66h, #6fh, #72h, #20h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #2ch, #20h, #31h, #20h, #66h, #6fh, #72h, #20h, #64h, #65h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #29h, #3ah, #13, #10, #0
-    ;"Enter element:\n\r"
-    str3:                   db #45h, #6eh, #74h, #65h, #72h, #20h, #65h, #6ch, #65h, #6dh, #65h, #6eh, #74h, #3ah, #13, #10, #0
+    ;"\n\rEnter element:\n\r"
+    str3:                   db #13, #10, #45h, #6eh, #74h, #65h, #72h, #20h, #65h, #6ch, #65h, #6dh, #65h, #6eh, #74h, #3ah, #13, #10, #0
     ;string size: 8 words
 	string:                 db #0, #0, #0, #0, #0, #0, #0, #0
 	;vector size: 50 words
