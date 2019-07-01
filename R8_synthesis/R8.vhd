@@ -284,11 +284,11 @@ begin
 						currentState <= Smfl;
                     elsif decodedInstruction = MFC then
 						currentState <= Smfc;
-					elsif decodedInstruction = SWI then
+					elsif decodedInstruction = SWI and TrapStatus = '0' then
 						TrapRequest <= '1';
 						regCause <= x"08";
 						currentState <= Sfetch;
-					elsif decodedInstruction = INVALID or decodedInstruction = JMP_TSR or decodedInstruction = JMP_ISR then -- if the processor decodes a JMP_TSR or JMP_ISR and reaches this state, it is an invalid instruction
+					elsif (decodedInstruction = INVALID or decodedInstruction = JMP_TSR or decodedInstruction = JMP_ISR) and TrapStatus = '0' then -- if the processor decodes a JMP_TSR or JMP_ISR and reaches this state, it is an invalid instruction
 						TrapRequest <= '1';
 						regCause <= x"01";
 						currentState <= Sfetch;
@@ -355,7 +355,7 @@ begin
                     end if;
                     
                 when Swbk =>
-					if (decodedInstruction = ADD or decodedInstruction = ADDI or decodedInstruction = SUB or decodedInstruction = SUBI) and overflowFlag = '1'  then
+					if (decodedInstruction = ADD or decodedInstruction = ADDI or decodedInstruction = SUB or decodedInstruction = SUBI) and overflowFlag = '1' and TrapStatus = '0' then
 						TrapRequest <= '1';
 						regCause <= x"0C";
 					else
@@ -448,7 +448,7 @@ begin
                     currentState <= Sfetch;
                     
                 when Sdiv =>
-                    if regB = x"0000" then  
+                    if regB = x"0000" and TrapStatus = '0' then  
 						TrapRequest <= '1';			-- zero division trap
 						regCause <= x"0F";
 					else

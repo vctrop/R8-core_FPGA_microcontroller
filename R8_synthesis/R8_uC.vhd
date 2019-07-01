@@ -26,8 +26,8 @@ end R8_uC;
 architecture structural of R8_uC is
     
 	signal clk, clk_mem : std_logic;
-	signal rw, ce, rst, rst_sync, rst_mode, ce_mem, ce_io, ce_portA, ce_PIC, rw_n, intr, ce_TX, TX_av, TX_ready, RX_av, RX_baud_av, ce_RX, ce_ROM: std_logic;
-	signal R8_out, R8_in, addressR8, ram_mem_out, rom_mem_out, data_portA, irq, RX_baud_in, data_TX : std_logic_vector(15 downto 0);
+	signal rw, rw_n, ce, rst, rst_sync, rst_mode, ce_mem, ce_io, ce_portA, ce_PIC, intr, ce_TX, TX_av, TX_ready, RX_av, RX_baud_av, ce_RX, ce_ROM, ce_timer, time_out: std_logic;
+	signal R8_out, R8_in, addressR8, ram_mem_out, rom_mem_out, data_portA, irq, RX_baud_in, data_TX, data_Timer : std_logic_vector(15 downto 0);
 	signal data_PIC, PIC_irq, data_RX : std_logic_vector(7 downto 0);
 	alias address_peripherals is addressR8(7 downto 4);
 	alias address_registers   is addressR8(1 downto 0);
@@ -151,6 +151,19 @@ begin
         data_av     => RX_av
     );
     
+	TIMER:	entity work.Timer
+	generic map(
+		DATA_WIDTH => 16
+	)
+	port map(
+		clk => clk, 
+		rst => rst,
+		data => data_Timer, 
+		wr => rw_n,
+		ce => ce_timer,
+		time_out => time_out
+	);
+	
     CLOCK_MANAGER : entity work.ClockManager 
         port map(
           clk_in      => board_clock,
@@ -197,19 +210,22 @@ begin
     --interrupt interface
     --port_io(3) <= increment_button
     --port_io(2) <= decrement button
-    --PIC_irq(7 downto 4) <= irq(15 downto 12);     --no longer used
     PIC_irq(7 downto 6) <= irq(3 downto 2);
-    PIC_irq(5 downto 0) <= (1 => RX_av, others => '0');
+    PIC_irq(5 downto 0) <= (1 => RX_av, 0 => time_out, others => '0');
+	
     
     -- Memory access control signals       
     rw_n   <= not rw;    
     
-    data_portA <= R8_out when rw = '0' and ce_portA = '1' else      -- portA data i/o tristate
+    data_portA <= R8_out when rw = '0' and ce_portA = '1' else      			-- portA data i/o tristate
                 (others => 'Z'); 
             
     data_PIC <= R8_out(7 downto 0) when rw = '0' and ce_PIC = '1' else           -- PIC data i/o tristate
                 (others => 'Z');
-            
+				
+	data_Timer <= R8_out when rw = '0' and ce_Timer = '1' else					-- Timer data i/o tristate
+				(others => 'Z');
+				
     data_TX     <= R8_out;
     RX_baud_in  <= R8_out; 
       
@@ -217,6 +233,7 @@ begin
                 x"00" & data_PIC                when rw = '1' and ce_PIC    = '1' else 
                 (0 => TX_ready, others => '0')  when rw = '1' and ce_TX     = '1' else 
                 x"00" & data_RX                 when rw = '1' and ce_RX     = '1' else
+				data_Timer						when rw = '1' and ce_timer  = '1' else
 				rom_mem_out						when              ce_ROM    = '1' else
                 ram_mem_out;
 
@@ -231,7 +248,8 @@ begin
     ce_PIC      <= '1' when ce_io = '1' and address_peripherals = x"1"  else '0';
     ce_TX       <= '1' when ce_io = '1' and address_peripherals = x"2"  else '0';
     ce_RX       <= '1' when ce_io = '1' and address_peripherals = x"3"  else '0';
-     
+    ce_timer	<= '1' when ce_io = '1' and address_peripherals = x"4"  else '0';
+	
 	TX_av       <= '1' when ce_TX = '1' and rw = '0' else '0';
     RX_baud_av  <= '1' when ce_RX = '1' and rw = '0' else '0';
 end structural;
