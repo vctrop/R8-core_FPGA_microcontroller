@@ -211,7 +211,7 @@ begin
     --port_io(3) <= increment_button
     --port_io(2) <= decrement button
     PIC_irq(7 downto 6) <= irq(3 downto 2);
-    PIC_irq(5 downto 0) <= (1 => RX_av, 0 => time_out, others => '0');
+    PIC_irq(5 downto 0) <= (0 => time_out, 1 => RX_av, others => '0');
 	
     
     -- Memory access control signals       
