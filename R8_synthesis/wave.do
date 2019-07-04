@@ -35,6 +35,8 @@ add wave -noupdate -divider Interruptions
 add wave -noupdate /r8_uc_tb/R8_uC/irq
 add wave -noupdate /r8_uc_tb/R8_uC/PROCESSOR/intr
 add wave -noupdate /r8_uc_tb/R8_uC/PIC/mask
+add wave -noupdate /r8_uc_tb/R8_uC/PROCESSOR/intr
+add wave -noupdate /r8_uc_tb/R8_uC/PROCESSOR/InterruptionStatus
 add wave -noupdate -divider Tx
 add wave -noupdate /r8_uc_tb/R8_uC/UART_TX/currentState
 add wave -noupdate /r8_uc_tb/R8_uC/UART_TX/reg_freq_baud
@@ -46,50 +48,17 @@ add wave -noupdate /r8_uc_tb/R8_uC/UART_RX/rx
 add wave -noupdate /r8_uc_tb/R8_uC/UART_RX/reg_freq_baud
 add wave -noupdate -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/data_RX
 add wave -noupdate /r8_uc_tb/R8_uC/RX_av
-add wave -noupdate -divider {RX buffer}
-add wave -noupdate -label rx_buffer_ready /r8_uc_tb/R8_uC/RAM/RAM(1115)
-add wave -noupdate -label rx_buffer_index /r8_uc_tb/R8_uC/RAM/RAM(1116)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1035)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1036)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1037)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1038)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1039)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1040)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1041)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1042)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1043)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1044)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1045)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1046)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1047)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1048)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1049)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1050)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1051)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1052)
-add wave -noupdate -expand -group RX_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1053)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1237)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1238)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1239)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1240)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1241)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1242)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1243)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1244)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1245)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1246)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1247)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1248)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1249)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1250)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1251)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1252)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1253)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1254)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1255)
-add wave -noupdate -expand -group User_buffer -radix hexadecimal -radixshowbase 0 /r8_uc_tb/R8_uC/RAM/RAM(1256)
+add wave -noupdate -divider PortA
+add wave -noupdate /r8_uc_tb/R8_uC/PORT_A/PortEnable
+add wave -noupdate /r8_uc_tb/R8_uC/PORT_A/PortConfig
+add wave -noupdate /r8_uc_tb/R8_uC/PORT_A/PortData
+add wave -noupdate /r8_uc_tb/R8_uC/PORT_A/PortIrqEnable
+add wave -noupdate -divider Timer
+add wave -noupdate /r8_uc_tb/R8_uC/TIMER/time_out
+add wave -noupdate /r8_uc_tb/R8_uC/TIMER/counter
+add wave -noupdate /r8_uc_tb/R8_uC/TIMER/initialized
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {969976981 ps} 0} {{Cursor 2} {5261780 ps} 0}
+WaveRestoreCursors {{Cursor 1} {3365115481 ps} 0} {{Cursor 2} {39770000 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 129
 configure wave -valuecolwidth 150
@@ -105,4 +74,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {959372883 ps} {1002138270 ps}
+WaveRestoreZoom {3359961084 ps} {3402726471 ps}

@@ -135,12 +135,26 @@ boot:
 	ldl r9, #D9h
 	st r9, r8, r0 
     
+	; config led
+	xor r0, r0, r0
+	ldh r8, #80h
+	ldl r8, #01h
+	ldh r9, #00h
+	ldl r9, #00h
+	st r9, r8, r0		; set all as output
+		
+	ldh r8, #80h
+	ldl r8, #00h
+	ldh r9, #00h
+	ldl r9, #01h		; enable first bit
+	st r9, r8, r0
+	
     ; Config timer
     xor r0, r0, r0
     ldh r8, #80h            ;
     ldl r8, #40h            ; timer address
-    ldh r9, #61h            ;
-    ldl r9, #A8h            ; Set counter to 25k of clock cycles (1 ms)
+    ldh r9, #7fh            ;
+    ldl r9, #ffh            ; Set counter to 25k of clock cycles (1 ms)
     st r9, r8, r0
     
     ; THIS MUST BE THE LAST THING BEFORE MAIN:
@@ -152,7 +166,7 @@ boot:
 	ldl r9, #C3h            ; Buttons, RX and timer can interrupt the processor
 	st r9, r8, r0
     
-    ldh r9, #main 
+	ldh r9, #main 
 	ldl r9, #main
     jmp r9
    
@@ -277,50 +291,19 @@ Timer_handler:
 ; Objective:
 ; Argument:NULL
 ; Return: NULL
-    xor r0, r0, r0
-    ldh r8, #debounce_flag
-    ldl r8, #debounce_flag
-    ld r9, r8, r0           ; r9 <- debounce_flag
-    subi r9, #1
-    st r9, r8, r0           ; debounce_flag --
-    
-    ldh r8, #ms_counter     ;
-    ldl r8, #ms_counter     ;
-    ld r9, r8, r0           ; r9 <- ms_counter
-    addi r9, #1             ;
-    st r9, r8, r0           ; ms_counter ++
-    
-    ; Check for 4 ms (250 Hz display)
-    ldh r5, #0              ;
-    ldl r5, #4              ;
-    div r9, r5              ;
-    mfh r5                  ; r5 <- ms_counter % 4
-    addi r5, #0
-    jmpzd #four_ms_th        ; if (ms_counter % 4) == 0
-    jmpd #check_one_s_th    ; else go check for 1 sec
-    four_ms_th:
-        jsrd #write_display  ; write_display()
-    
-    check_one_s_th:
-    ; Check for 1 second (increment display)
-        ldh r5, #03h            ;
-        ldl r5, #E8h            ; r5 <- 1000
-        sub r5, r5, r9          ;
-        jmpzd #one_sec_th       ;
-        jmpnd #one_sec_th       ; if (ms_counter >= 1000)
-        jmpd #restart_timer_th
-        one_sec_th:
-            xor r1, r1, r1              ;
-            jsrd #decimal_increment     ; call decimal_increment(timer)
-            xor r0, r0, r0
-            st r0, r8, r0               ; ms_counter <- 0
+	xor r0, r0, r0
+    ldh r8, #80h
+	ldl r8, #02h
+	ld r5, r8, r0 
+	not r5, r5		; toggle led
+	st r5, r8, r0
     
     restart_timer_th:
         xor r0, r0, r0
         ldh r8, #80h            ;
         ldl r8, #40h            ; timer address
-        ldh r9, #61h            ;
-        ldl r9, #A8h            ; Set counter to 25k of clock cycles (1 ms)
+        ldh r9, #7fh            ;
+        ldl r9, #ffh           ; Set counter to 25k of clock cycles (1 ms)
         st r9, r8, r0    
     rts
 ; end Timer_handler
@@ -1006,254 +989,255 @@ decimal_decrement:
 
 
 
-BubbleSort:
-; Objective: sorts vector based on order variable (vector address is hardcoded)
-; Argument: r1 <- order, r2 <- size
-; Return: NULL   
-    ; Initialization code
-	push r10
-    xor r0, r0, r0          ; r0 <- 0
-	add r10, r1, r0			; r10 <- order
-	ldh r1, #vector
-	ldl r1, #vector
-    add r3, r2, r1          ; r3 points the end of array (right after the last element)
+; BubbleSort:
+; ; Objective: sorts vector based on order variable (vector address is hardcoded)
+; ; Argument: r1 <- order, r2 <- size
+; ; Return: NULL   
+    ; ; Initialization code
+	; push r10
+    ; xor r0, r0, r0          ; r0 <- 0
+	; add r10, r1, r0			; r10 <- order
+	; ldh r1, #vector
+	; ldl r1, #vector
+    ; add r3, r2, r1          ; r3 points the end of array (right after the last element)
     
-    ldl r4, #0              ;
-    ldh r4, #1              ; r4 <- 1
+    ; ldl r4, #0              ;
+    ; ldh r4, #1              ; r4 <- 1
     
     
-; Main code
-scan_bs:
-    addi r4, #0             ; Verifies if there was element swaping
-    jmpzd #end_bs              ; If r4 = 0 then no element swaping
+; ; Main code
+; scan_bs:
+    ; addi r4, #0             ; Verifies if there was element swaping
+    ; jmpzd #end_bs              ; If r4 = 0 then no element swaping
     
-    xor r4, r4, r4          ; r4 <- 0 before each pass
+    ; xor r4, r4, r4          ; r4 <- 0 before each pass
     
-    add r5, r1, r0          ; r5 points the first array element
+    ; add r5, r1, r0          ; r5 points the first array element
     
-    add r6, r1, r0          ;
-    addi r6, #1             ; r6 points the second array element
+    ; add r6, r1, r0          ;
+    ; addi r6, #1             ; r6 points the second array element
     
-; Read two consecutive elements and compares them    
-loop_bs:
-    ld r7, r5, r0           ; r7 <- array[r5]
-    ld r8, r6, r0           ; r8 <- array[r6]
-	addi r10, #0				; check order
-	jmpzd #crescent_order_bs
-	sub r2, r7, r8
-	jmpnd #swap_bs
-	jmpd #continue_bs
-	crescent_order_bs:
-    sub r2, r8, r7          ; If r8 > r7, negative flag is set
-    jmpnd #swap_bs             ; (if array[r5] > array[r6] jump)
+; ; Read two consecutive elements and compares them    
+; loop_bs:
+    ; ld r7, r5, r0           ; r7 <- array[r5]
+    ; ld r8, r6, r0           ; r8 <- array[r6]
+	; addi r10, #0				; check order
+	; jmpzd #crescent_order_bs
+	; sub r2, r7, r8
+	; jmpnd #swap_bs
+	; jmpd #continue_bs
+	; crescent_order_bs:
+    ; sub r2, r8, r7          ; If r8 > r7, negative flag is set
+    ; jmpnd #swap_bs             ; (if array[r5] > array[r6] jump)
     
-; Increments the index registers and verifies is the pass is concluded
-continue_bs:
-    addi r5, #1             ; r5++
-    addi r6, #1             ; r6++
+; ; Increments the index registers and verifies is the pass is concluded
+; continue_bs:
+    ; addi r5, #1             ; r5++
+    ; addi r6, #1             ; r6++
     
-    sub r2, r6, r3          ; Verifies if the end of array was reached (r6 = r3)
-    jmpzd #scan_bs             ; If r6 = r3 jump
-    jmpd #loop_bs              ; else, the next two elements are compared
+    ; sub r2, r6, r3          ; Verifies if the end of array was reached (r6 = r3)
+    ; jmpzd #scan_bs             ; If r6 = r3 jump
+    ; jmpd #loop_bs              ; else, the next two elements are compared
 
-; Swaps two array elements (memory)
-swap_bs:
-    st r7, r6, r0           ; array[r6] <- r7
-    st r8, r5, r0           ; array[r5] <- r8
-    ldl r4, #1              ; Set the element swaping (r4 <- 1)
-    jmpd #continue_bs
-end_bs:
-	pop r10
-	rts
-;end BubbleSort
+; ; Swaps two array elements (memory)
+; swap_bs:
+    ; st r7, r6, r0           ; array[r6] <- r7
+    ; st r8, r5, r0           ; array[r5] <- r8
+    ; ldl r4, #1              ; Set the element swaping (r4 <- 1)
+    ; jmpd #continue_bs
+; end_bs:
+	; pop r10
+	; rts
+; ;end BubbleSort
 
 
-get_string:
-; Objective: Wrapper for read_buffer, busy waits until buffer is available
-; Argument: r1 <- &string, r2 <- size
-; Return: r3 <- [number of characters read]   
-    ldh r14, #0 
-    ldl r14, #4     ; read buffer    
-    read_loop_gs:
-        swi         ; call read read_buffer(string, size)
-        addi r3, #0
-        jmpzd #read_loop_gs
-    rts
-;end get_string
+; get_string:
+; ; Objective: Wrapper for read_buffer, busy waits until buffer is available
+; ; Argument: r1 <- &string, r2 <- size
+; ; Return: r3 <- [number of characters read]   
+    ; ldh r14, #0 
+    ; ldl r14, #4     ; read buffer    
+    ; read_loop_gs:
+        ; swi         ; call read read_buffer(string, size)
+        ; addi r3, #0
+        ; jmpzd #read_loop_gs
+    ; rts
+; ;end get_string
 ;--------------------END USER PROGRAM SUBROUTINES--------------------------------------
 
 
 main:
-    ; read string
-    ldh r14, #0
-    ldl r14, #0        ;print string
-    ldh r1, #str0
-    ldl r1, #str0
-    swi
+	jmpd #main
+    ; ; read string
+    ; ldh r14, #0
+    ; ldl r14, #0        ;print string
+    ; ldh r1, #str0
+    ; ldl r1, #str0
+    ; swi
 	
-    ldh r1, #user_buffer
-    ldl r1, #user_buffer
-    ldh r2, #0
-    ldl r2, #50    
-    jsrd #get_string
+    ; ldh r1, #user_buffer
+    ; ldl r1, #user_buffer
+    ; ldh r2, #0
+    ; ldl r2, #50    
+    ; jsrd #get_string
     
-    ;start a new line
-    ldh r14, #0
-    ldl r14, #0        ;print string
-    ldh r1, #new_line
-    ldl r1, #new_line
-    swi
+    ; ;start a new line
+    ; ldh r14, #0
+    ; ldl r14, #0        ;print string
+    ; ldh r1, #new_line
+    ; ldl r1, #new_line
+    ; swi
     
-    ;reverse buffer order
-    ldh r9, #user_buffer
-    ldl r9, #user_buffer
-    xor r0, r0, r0
-    subi r3, #2             ; r3 points to end of string on buffer  TODO: ISSO PODE ESTAR ERRADO
-    reverse_buffer_loop:
-        ld r5, r9, r0      ; get begging words
-        ld r6, r9, r3      ; get last words
-        st r5, r9, r3
-        st r6, r9, r0      ; swap elements
-        addi r0, #1
-        subi r3, #1
-        sub r7, r3, r0      ; if(r3 <= r0)
-        jmpnd #print_reversed
-        jmpzd #print_reversed
-        jmpd #reverse_buffer_loop
+    ; ;reverse buffer order
+    ; ldh r9, #user_buffer
+    ; ldl r9, #user_buffer
+    ; xor r0, r0, r0
+    ; subi r3, #2             ; r3 points to end of string on buffer  TODO: ISSO PODE ESTAR ERRADO
+    ; reverse_buffer_loop:
+        ; ld r5, r9, r0      ; get begging words
+        ; ld r6, r9, r3      ; get last words
+        ; st r5, r9, r3
+        ; st r6, r9, r0      ; swap elements
+        ; addi r0, #1
+        ; subi r3, #1
+        ; sub r7, r3, r0      ; if(r3 <= r0)
+        ; jmpnd #print_reversed
+        ; jmpzd #print_reversed
+        ; jmpd #reverse_buffer_loop
     
-	; print in inverse order
-    print_reversed:
-    ldh r14, #0
-    ldl r14, #0        ;print string
-    ldh r1, #user_buffer
-    ldl r1, #user_buffer
-    swi
+	; ; print in inverse order
+    ; print_reversed:
+    ; ldh r14, #0
+    ; ldl r14, #0        ;print string
+    ; ldh r1, #user_buffer
+    ; ldl r1, #user_buffer
+    ; swi
     
-    ;start a new line
-    ldh r14, #0
-    ldl r14, #0        ;print string
-    ldh r1, #new_line
-    ldl r1, #new_line
-    swi
-    
-    
-	main_sort:
-	;read size of vector
-    main_get_size:
-    ldh r14, #0
-    ldl r14, #0        ;print string
-    ldh r1, #str1
-    ldl r1, #str1
-    swi
-    
-    ldh r1, #user_buffer
-    ldl r1, #user_buffer
-    ldh r2, #0
-    ldl r2, #50    
-    jsrd #get_string
-    
-    ldh r14, #0
-    ldl r14, #3     ; string_to_integer
-    ldh r1, #user_buffer
-    ldl r1, #user_buffer
-    swi
-    addi r3, #0         ; if(r3 <= 0) input was not integer (or zero, which is also invalid)
-    jmpnd #main_get_size
-    jmpzd #main_get_size
-    ldh r7, #0
-    ldl r7, #50         ; max vector size constant
-    sub r5, r7, r3      ; if (r3 > 50) input was invalid
-    jmpnd #main_get_size
-    xor r0, r0, r0
-    add r10, r3, r0     ; r10 <- vector_size
+    ; ;start a new line
+    ; ldh r14, #0
+    ; ldl r14, #0        ;print string
+    ; ldh r1, #new_line
+    ; ldl r1, #new_line
+    ; swi
     
     
-    ;start a new line
-    ldh r14, #0
-    ldl r14, #0        ;print string
-    ldh r1, #new_line
-    ldl r1, #new_line
-    swi
+	; main_sort:
+	; ;read size of vector
+    ; main_get_size:
+    ; ldh r14, #0
+    ; ldl r14, #0        ;print string
+    ; ldh r1, #str1
+    ; ldl r1, #str1
+    ; swi
     
-	; read order
-    main_get_order:
-    ldh r14, #0
-    ldl r14, #0        ;print string
-    ldh r1, #str2
-    ldl r1, #str2
-    swi
+    ; ldh r1, #user_buffer
+    ; ldl r1, #user_buffer
+    ; ldh r2, #0
+    ; ldl r2, #50    
+    ; jsrd #get_string
     
-    ldh r1, #user_buffer
-    ldl r1, #user_buffer
-    ldh r2, #0
-    ldl r2, #50    
-    jsrd #get_string
-    
-    ldh r14, #0
-    ldl r14, #3     ; string_to_integer
-    ldh r1, #user_buffer
-    ldl r1, #user_buffer
-    swi
-    addi r3, #0         ; if(r3 < 0) input was not integer
-    jmpnd #main_get_order
-    xor r0, r0, r0
-    add r11, r3, r0     ; r11 <- order
+    ; ldh r14, #0
+    ; ldl r14, #3     ; string_to_integer
+    ; ldh r1, #user_buffer
+    ; ldl r1, #user_buffer
+    ; swi
+    ; addi r3, #0         ; if(r3 <= 0) input was not integer (or zero, which is also invalid)
+    ; jmpnd #main_get_size
+    ; jmpzd #main_get_size
+    ; ldh r7, #0
+    ; ldl r7, #50         ; max vector size constant
+    ; sub r5, r7, r3      ; if (r3 > 50) input was invalid
+    ; jmpnd #main_get_size
+    ; xor r0, r0, r0
+    ; add r10, r3, r0     ; r10 <- vector_size
     
     
-	;read vector elements
-	xor r5, r5, r5      ; r5 is index
-    ldh r9, #vector
-    ldl r9, #vector
-    read_vector_elements_loop:
-        ldh r14, #0
-        ldl r14, #0        ;print string
-        ldh r1, #str3
-        ldl r1, #str3
-        swi
+    ; ;start a new line
+    ; ldh r14, #0
+    ; ldl r14, #0        ;print string
+    ; ldh r1, #new_line
+    ; ldl r1, #new_line
+    ; swi
+    
+	; ; read order
+    ; main_get_order:
+    ; ldh r14, #0
+    ; ldl r14, #0        ;print string
+    ; ldh r1, #str2
+    ; ldl r1, #str2
+    ; swi
+    
+    ; ldh r1, #user_buffer
+    ; ldl r1, #user_buffer
+    ; ldh r2, #0
+    ; ldl r2, #50    
+    ; jsrd #get_string
+    
+    ; ldh r14, #0
+    ; ldl r14, #3     ; string_to_integer
+    ; ldh r1, #user_buffer
+    ; ldl r1, #user_buffer
+    ; swi
+    ; addi r3, #0         ; if(r3 < 0) input was not integer
+    ; jmpnd #main_get_order
+    ; xor r0, r0, r0
+    ; add r11, r3, r0     ; r11 <- order
+    
+    
+	; ;read vector elements
+	; xor r5, r5, r5      ; r5 is index
+    ; ldh r9, #vector
+    ; ldl r9, #vector
+    ; read_vector_elements_loop:
+        ; ldh r14, #0
+        ; ldl r14, #0        ;print string
+        ; ldh r1, #str3
+        ; ldl r1, #str3
+        ; swi
         
-        ldh r1, #user_buffer
-        ldl r1, #user_buffer
-        ldh r2, #0
-        ldl r2, #50    
-        jsrd #get_string
+        ; ldh r1, #user_buffer
+        ; ldl r1, #user_buffer
+        ; ldh r2, #0
+        ; ldl r2, #50    
+        ; jsrd #get_string
         
-        ldh r14, #0
-        ldl r14, #3     ; string_to_integer
-        ldh r1, #user_buffer
-        ldl r1, #user_buffer
-        swi
-        addi r3, #0         ; if(r3 < 0) input was not integer
-        jmpnd #read_vector_elements_loop
-        ;store the element
-        st r3, r9, r5       ; store vector
-        addi r5, #1         ; index++
-        sub r7, r10, r5     ; while(index <= vector_size)
-        jmpnd #main_sort_vector
-        jmpzd #main_sort_vector
-        jmpd #read_vector_elements_loop
+        ; ldh r14, #0
+        ; ldl r14, #3     ; string_to_integer
+        ; ldh r1, #user_buffer
+        ; ldl r1, #user_buffer
+        ; swi
+        ; addi r3, #0         ; if(r3 < 0) input was not integer
+        ; jmpnd #read_vector_elements_loop
+        ; ;store the element
+        ; st r3, r9, r5       ; store vector
+        ; addi r5, #1         ; index++
+        ; sub r7, r10, r5     ; while(index <= vector_size)
+        ; jmpnd #main_sort_vector
+        ; jmpzd #main_sort_vector
+        ; jmpd #read_vector_elements_loop
         
-	;sort vector
-	main_sort_vector:
-    xor r0, r0, r0
-    add r2, r10, r0     ; r2 <- size
-    add r1, r11, r0     ; r1 <- order
-    jsrd #BubbleSort
+	; ;sort vector
+	; main_sort_vector:
+    ; xor r0, r0, r0
+    ; add r2, r10, r0     ; r2 <- size
+    ; add r1, r11, r0     ; r1 <- order
+    ; jsrd #BubbleSort
     
-    ;start a new line
-    ldh r14, #0
-    ldl r14, #0        ;print string
-    ldh r1, #new_line
-    ldl r1, #new_line
-    swi
+    ; ;start a new line
+    ; ldh r14, #0
+    ; ldl r14, #0        ;print string
+    ; ldh r1, #new_line
+    ; ldl r1, #new_line
+    ; swi
     
-    ;print_array
-    ldh r1, #vector
-    ldl r1, #vector
-    xor r0, r0, r0
-    add r2, r10, r0     ; r2 <- size
-    jsrd #print_array
+    ; ;print_array
+    ; ldh r1, #vector
+    ; ldl r1, #vector
+    ; xor r0, r0, r0
+    ; add r2, r10, r0     ; r2 <- size
+    ; jsrd #print_array
     
-	jmpd #main_sort  
+	;jmpd #main
 .endcode
 
 
@@ -1289,16 +1273,16 @@ main:
         ms_counter:             db #0000h
         
         ; Strings
-        ;"Type a message:\n\r"
-        str0:                   db #54h, #79h, #70h, #65h, #20h, #61h, #20h, #6dh, #65h, #73h, #73h, #61h, #67h, #65h, #3ah, #13, #10, #0
-        ;"\n\rType vector size:\n\r"
-        str1:                   db #13, #10, #54h, #79h, #70h, #65h, #20h, #76h, #65h, #63h, #74h, #6fh, #72h, #20h, #73h, #69h, #7ah, #65h, #3ah, #13, #10, #0
-        ;"Enter order (0 for crescent, 1 for decrescent):r\n"
-        str2:                   db #45h, #6eh, #74h, #65h, #72h, #20h, #6fh, #72h, #64h, #65h, #72h, #20h, #28h, #30h, #20h, #66h, #6fh, #72h, #20h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #2ch, #20h, #31h, #20h, #66h, #6fh, #72h, #20h, #64h, #65h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #29h, #3ah, #13, #10, #0
-        ;"\n\rEnter element:\n\r"
-        str3:                   db #13, #10, #45h, #6eh, #74h, #65h, #72h, #20h, #65h, #6ch, #65h, #6dh, #65h, #6eh, #74h, #3ah, #13, #10, #0
-        ;string size: 8 words
+        ; ;"Type a message:\n\r"
+        ; str0:                   db #54h, #79h, #70h, #65h, #20h, #61h, #20h, #6dh, #65h, #73h, #73h, #61h, #67h, #65h, #3ah, #13, #10, #0
+        ; ;"\n\rType vector size:\n\r"
+        ; str1:                   db #13, #10, #54h, #79h, #70h, #65h, #20h, #76h, #65h, #63h, #74h, #6fh, #72h, #20h, #73h, #69h, #7ah, #65h, #3ah, #13, #10, #0
+        ; ;"Enter order (0 for crescent, 1 for decrescent):r\n"
+        ; str2:                   db #45h, #6eh, #74h, #65h, #72h, #20h, #6fh, #72h, #64h, #65h, #72h, #20h, #28h, #30h, #20h, #66h, #6fh, #72h, #20h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #2ch, #20h, #31h, #20h, #66h, #6fh, #72h, #20h, #64h, #65h, #63h, #72h, #65h, #73h, #63h, #65h, #6eh, #74h, #29h, #3ah, #13, #10, #0
+        ; ;"\n\rEnter element:\n\r"
+        ; str3:                   db #13, #10, #45h, #6eh, #74h, #65h, #72h, #20h, #65h, #6ch, #65h, #6dh, #65h, #6eh, #74h, #3ah, #13, #10, #0
+        ; ;string size: 8 words
         string:                 db #0, #0, #0, #0, #0, #0, #0, #0
-        ;vector size: 50 words
-        vector:     		    db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 
+        ; ;vector size: 50 words
+        ; vector:     		    db #50 , #49 , #48 , #47 , #46 , #45 , #44 , #43 , #42 , #41 ,#40 , #39 , #38 , #37 , #36 , #35 , #34 , #33 , #32 , #31 , #30 , #29 , #28 , #27 , #26 , #25 , #24 , #23 , #22 , #21 , #20 , #19 , #18 , #17 , #16 , #15 , #14 , #13 , #12 , #11 , #10 , #9 , #8 , #7 , #6 , #5 , #4 , #3 , #2 , #1 
 .enddata

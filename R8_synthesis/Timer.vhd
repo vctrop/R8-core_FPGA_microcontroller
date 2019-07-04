@@ -46,7 +46,7 @@ begin
             counter <= (others=>'0');
         
         elsif rising_edge(clk) then
-            if ce = '1' and rw = '1' then                
+            if ce = '1' and wr = '1' then                
                 counter <= UNSIGNED(data);
                 initialized <= true;
                 
@@ -57,7 +57,7 @@ begin
         end if;
     end process;
     
-    data <= STD_LOGIC_VECTOR(counter) when ce = '1' and rw = '0' else (others=>'Z');
+    data <= STD_LOGIC_VECTOR(counter) when ce = '1' and wr = '0' else (others=>'Z');
         
         
 end Behavioral;
