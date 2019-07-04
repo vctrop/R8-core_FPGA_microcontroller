@@ -120,6 +120,26 @@ boot:
 	ldl r8, #debounce_flag
 	st  r0, r8, r0				    ; debounce_flag <- 0
     
+	;port A config 
+	xor r0,r0,r0
+	ldh r8, #80h            ;
+    ldl r8, #01h            ; r8 <= PortA regConfig address
+    ldh r9, #00h            ;
+    ldl r9, #0Ch            ; r9 <= PortA regConfig content
+    st r9, r8, r0           ; Write regConfig content on its address
+    
+    ldh r8, #80h            ;
+    ldl r8, #03h            ; r8 <= PortA irqEnable address
+    ldh r9, #00h            ;
+    ldl r9, #0Ch            ; r8 <= PortA irqEnable content
+    st r9, r8, r0           ; Write irqEnable content on its address
+
+    ldh r8, #80h            ;
+    ldl r8, #00h            ; r8 <= PortA regEnable address
+    ldh r9, #FFh            ;
+    ldl r9, #FCh            ; r9 <= PortA regEnable content
+    st r9, r8, r0           ; Write regEnable content on its address
+	
 	; Set baud rate for USART comunications
     ; 217  -- floor (25e6 / 115200)
     xor r0, r0, r0
@@ -277,23 +297,27 @@ Timer_handler:
 ; Objective:
 ; Argument:NULL
 ; Return: NULL
+	push r10
     xor r0, r0, r0
     ldh r8, #debounce_flag
     ldl r8, #debounce_flag
     ld r9, r8, r0           ; r9 <- debounce_flag
+	addi r9, #0
+	jmpzd #check_counter_th
     subi r9, #1
     st r9, r8, r0           ; debounce_flag --
     
+	check_counter_th:
     ldh r8, #ms_counter     ;
     ldl r8, #ms_counter     ;
-    ld r9, r8, r0           ; r9 <- ms_counter
-    addi r9, #1             ;
-    st r9, r8, r0           ; ms_counter ++
+    ld r10, r8, r0           ; r10 <- ms_counter
+    addi r10, #1             ;
+    st r10, r8, r0           ; ms_counter ++
     
     ; Check for 4 ms (250 Hz display)
     ldh r5, #0              ;
     ldl r5, #4              ;
-    div r9, r5              ;
+    div r10, r5              ;
     mfh r5                  ; r5 <- ms_counter % 4
     addi r5, #0
     jmpzd #four_ms_th        ; if (ms_counter % 4) == 0
@@ -305,7 +329,7 @@ Timer_handler:
     ; Check for 1 second (increment display)
         ldh r5, #03h            ;
         ldl r5, #E8h            ; r5 <- 1000
-        sub r5, r5, r9          ;
+        sub r5, r5, r10          ;
         jmpzd #one_sec_th       ;
         jmpnd #one_sec_th       ; if (ms_counter >= 1000)
         jmpd #restart_timer_th
@@ -313,15 +337,18 @@ Timer_handler:
             xor r1, r1, r1              ;
             jsrd #decimal_increment     ; call decimal_increment(timer)
             xor r0, r0, r0
+			ldh r8, #ms_counter     	;
+			ldl r8, #ms_counter     	;
             st r0, r8, r0               ; ms_counter <- 0
     
     restart_timer_th:
-        xor r0, r0, r0
-        ldh r8, #80h            ;
-        ldl r8, #40h            ; timer address
-        ldh r9, #61h            ;
-        ldl r9, #A8h            ; Set counter to 25k of clock cycles (1 ms)
-        st r9, r8, r0    
+	xor r0, r0, r0
+	ldh r8, #80h            ;
+	ldl r8, #40h            ; timer address
+	ldh r9, #61h            ;
+	ldl r9, #A8h            ; Set counter to 25k of clock cycles (1 ms)
+	st r9, r8, r0    
+	pop r10
     rts
 ; end Timer_handler
 
@@ -865,6 +892,7 @@ write_display:
     push r11
     push r12
     
+	
     xor r0, r0, r0
     ldh r6, #00h
     ldl r6, #04h
