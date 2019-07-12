@@ -48,7 +48,7 @@ begin
         elsif rising_edge(clk) then
             if ce = '1' and wr = '1' then                
                 counter <= UNSIGNED(data);
-                initialiozed <= true;
+                initialized <= true;
                 
             elsif counter /= 0 then 
                 counter <= counter - 1;              

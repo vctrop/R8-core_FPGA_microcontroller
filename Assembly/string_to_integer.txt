@@ -1,0 +1,11 @@
+
+	ldh r1, #string
+	ldl r1, #string
+	ldh r14, #0
+	ldl r14, #0
+	swi 			; print_string
+	;o terminal serial conectado ao microcontrolador 
+	;deve receber "olá"
+	
+; string contém "olá" em ASCII 
+string db #6fh, #6ch, #e1h, #0
