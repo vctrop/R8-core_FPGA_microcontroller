@@ -1,7 +1,7 @@
 # R8-core_FPGA_microcontroller
 
-Microcontroller implementation using a R8 core (PUCRS), targeted to FPGA synthesis.
-Coursework for ELC1094 - Projeto de Processadores (UFSM).
+Microcontroller implementation using an expanded version of the R8 ISA (PUCRS), targeted to FPGA synthesis.
+Coursework for ELC1094 - Projeto de Processadores, Universidade Federal de Santa Maria, 2019/1.
 <br /><br />
 
 <p align="center">
